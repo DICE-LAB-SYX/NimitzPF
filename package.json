@@ -1,0 +1,17 @@
+{
+  "name": "nimitzpf",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @nimitzpf/web dev",
+    "build": "pnpm --filter @nimitzpf/web build",
+    "preview": "pnpm --filter @nimitzpf/web preview",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "extract": "node scripts/extract-data.mjs"
+  }
+}

@@ -1,0 +1,964 @@
+{
+  "build": "ad60d10b",
+  "core": {
+    "GameMode": "battle",
+    "HandSize": 4,
+    "MaxModifiersOnCard": 2,
+    "MaxModifiersOfTypeOnCard": 1,
+    "MaxModifiersOnHand": 2,
+    "MaxModifiersOfTypeOnHand": 3,
+    "StrengthDispersionLeft": 0,
+    "StrengthDispersionRight": 0,
+    "StrengthDispersionAbsLeft": 10,
+    "StrengthDispersionAbsRight": 10,
+    "MinProbabilityOfWin": 0,
+    "MaxProbabilityOfWin": 1,
+    "HealthFactor": [
+      0.8,
+      0.9,
+      1
+    ]
+  },
+  "clearThreshold": 0.75,
+  "cards": [
+    {
+      "code": "card_1",
+      "tier": 3,
+      "type": "aircraft",
+      "tags": [],
+      "specs": [
+        75,
+        30,
+        75
+      ],
+      "buffs": [
+        {
+          "spec": 0,
+          "direction": "left",
+          "value": 0.3
+        }
+      ],
+      "debuffs": [
+        {
+          "vuln": 105,
+          "direction": "forward",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "code": "card_2",
+      "tier": 3,
+      "type": "aircraft",
+      "tags": [],
+      "specs": [
+        55,
+        30,
+        95
+      ],
+      "buffs": [],
+      "debuffs": [
+        {
+          "vuln": 100,
+          "direction": "forward-left",
+          "value": 0.2
+        },
+        {
+          "vuln": 105,
+          "direction": "forward-right",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "code": "card_3",
+      "tier": 2,
+      "type": "aircraft",
+      "tags": [],
+      "specs": [
+        60,
+        25,
+        60
+      ],
+      "buffs": [],
+      "debuffs": [
+        {
+          "vuln": 101,
+          "direction": "forward-left",
+          "value": 0.2
+        },
+        {
+          "vuln": 105,
+          "direction": "forward-right",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "code": "card_4",
+      "tier": 2,
+      "type": "aircraft",
+      "tags": [],
+      "specs": [
+        35,
+        25,
+        80
+      ],
+      "buffs": [],
+      "debuffs": [
+        {
+          "vuln": 100,
+          "direction": "forward-right",
+          "value": 0.2
+        },
+        {
+          "vuln": 105,
+          "direction": "forward-left",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "code": "card_5",
+      "tier": 1,
+      "type": "aircraft",
+      "tags": [],
+      "specs": [
+        35,
+        20,
+        55
+      ],
+      "buffs": [
+        {
+          "spec": 0,
+          "direction": "right",
+          "value": 0.3
+        }
+      ],
+      "debuffs": [
+        {
+          "vuln": 105,
+          "direction": "forward",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "code": "card_6",
+      "tier": 1,
+      "type": "aircraft",
+      "tags": [],
+      "specs": [
+        20,
+        20,
+        60
+      ],
+      "buffs": [
+        {
+          "spec": 2,
+          "direction": "left",
+          "value": 0.3
+        }
+      ],
+      "debuffs": [
+        {
+          "vuln": 100,
+          "direction": "forward",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "code": "card_7",
+      "tier": 3,
+      "type": "battleship",
+      "tags": [],
+      "specs": [
+        80,
+        80,
+        40
+      ],
+      "buffs": [],
+      "debuffs": [
+        {
+          "vuln": 101,
+          "direction": "forward",
+          "value": 0.2
+        },
+        {
+          "vuln": 103,
+          "direction": "forward-right",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "code": "card_8",
+      "tier": 3,
+      "type": "battleship",
+      "tags": [],
+      "specs": [
+        80,
+        75,
+        35
+      ],
+      "buffs": [],
+      "debuffs": [
+        {
+          "vuln": 100,
+          "direction": "forward-right",
+          "value": 0.2
+        },
+        {
+          "vuln": 103,
+          "direction": "forward-left",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "code": "card_9",
+      "tier": 2,
+      "type": "battleship",
+      "tags": [],
+      "specs": [
+        60,
+        60,
+        35
+      ],
+      "buffs": [
+        {
+          "spec": 0,
+          "direction": "left",
+          "value": 0.3
+        }
+      ],
+      "debuffs": [
+        {
+          "vuln": 101,
+          "direction": "forward-right",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "code": "card_10",
+      "tier": 2,
+      "type": "battleship",
+      "tags": [],
+      "specs": [
+        65,
+        65,
+        20
+      ],
+      "buffs": [],
+      "debuffs": [
+        {
+          "vuln": 100,
+          "direction": "forward-left",
+          "value": 0.2
+        },
+        {
+          "vuln": 103,
+          "direction": "forward",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "code": "card_11",
+      "tier": 1,
+      "type": "battleship",
+      "tags": [],
+      "specs": [
+        45,
+        35,
+        35
+      ],
+      "buffs": [
+        {
+          "spec": 0,
+          "direction": "right",
+          "value": 0.3
+        }
+      ],
+      "debuffs": [
+        {
+          "vuln": 103,
+          "direction": "forward-left",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "code": "card_12",
+      "tier": 1,
+      "type": "battleship",
+      "tags": [],
+      "specs": [
+        50,
+        50,
+        15
+      ],
+      "buffs": [
+        {
+          "spec": 0,
+          "direction": "left",
+          "value": 0.3
+        }
+      ],
+      "debuffs": [
+        {
+          "vuln": 103,
+          "direction": "forward-right",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "code": "card_13",
+      "tier": 3,
+      "type": "cruiser",
+      "tags": [],
+      "specs": [
+        65,
+        65,
+        50
+      ],
+      "buffs": [],
+      "debuffs": [
+        {
+          "vuln": 101,
+          "direction": "forward-left",
+          "value": 0.2
+        },
+        {
+          "vuln": 103,
+          "direction": "forward",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "code": "card_14",
+      "tier": 3,
+      "type": "cruiser",
+      "tags": [],
+      "specs": [
+        65,
+        65,
+        50
+      ],
+      "buffs": [
+        {
+          "spec": 0,
+          "direction": "right",
+          "value": 0.3
+        }
+      ],
+      "debuffs": [
+        {
+          "vuln": 101,
+          "direction": "forward-right",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "code": "card_15",
+      "tier": 2,
+      "type": "cruiser",
+      "tags": [],
+      "specs": [
+        45,
+        45,
+        55
+      ],
+      "buffs": [
+        {
+          "spec": 2,
+          "direction": "right",
+          "value": 0.3
+        }
+      ],
+      "debuffs": [
+        {
+          "vuln": 104,
+          "direction": "forward",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "code": "card_16",
+      "tier": 2,
+      "type": "cruiser",
+      "tags": [],
+      "specs": [
+        35,
+        35,
+        70
+      ],
+      "buffs": [],
+      "debuffs": [
+        {
+          "vuln": 102,
+          "direction": "forward-right",
+          "value": 0.2
+        },
+        {
+          "vuln": 100,
+          "direction": "forward",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "code": "card_17",
+      "tier": 2,
+      "type": "cruiser",
+      "tags": [],
+      "specs": [
+        45,
+        45,
+        50
+      ],
+      "buffs": [],
+      "debuffs": [
+        {
+          "vuln": 103,
+          "direction": "forward-left",
+          "value": 0.2
+        },
+        {
+          "vuln": 101,
+          "direction": "forward",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "code": "card_18",
+      "tier": 1,
+      "type": "cruiser",
+      "tags": [],
+      "specs": [
+        30,
+        30,
+        45
+      ],
+      "buffs": [
+        {
+          "spec": 1,
+          "direction": "left",
+          "value": 0.3
+        }
+      ],
+      "debuffs": [
+        {
+          "vuln": 104,
+          "direction": "forward-left",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "code": "card_19",
+      "tier": 1,
+      "type": "cruiser",
+      "tags": [],
+      "specs": [
+        30,
+        30,
+        40
+      ],
+      "buffs": [],
+      "debuffs": [
+        {
+          "vuln": 102,
+          "direction": "forward",
+          "value": 0.2
+        },
+        {
+          "vuln": 104,
+          "direction": "forward-right",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "code": "card_20",
+      "tier": 1,
+      "type": "cruiser",
+      "tags": [],
+      "specs": [
+        30,
+        30,
+        40
+      ],
+      "buffs": [
+        {
+          "spec": 2,
+          "direction": "left",
+          "value": 0.3
+        }
+      ],
+      "debuffs": [
+        {
+          "vuln": 102,
+          "direction": "forward-left",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "code": "card_21",
+      "tier": 3,
+      "type": "destroyer",
+      "tags": [],
+      "specs": [
+        55,
+        60,
+        65
+      ],
+      "buffs": [
+        {
+          "spec": 1,
+          "direction": "left",
+          "value": 0.3
+        }
+      ],
+      "debuffs": [
+        {
+          "vuln": 102,
+          "direction": "forward",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "code": "card_22",
+      "tier": 3,
+      "type": "destroyer",
+      "tags": [],
+      "specs": [
+        50,
+        60,
+        70
+      ],
+      "buffs": [
+        {
+          "spec": 1,
+          "direction": "right",
+          "value": 0.3
+        }
+      ],
+      "debuffs": [
+        {
+          "vuln": 104,
+          "direction": "forward-left",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "code": "card_23",
+      "tier": 2,
+      "type": "destroyer",
+      "tags": [],
+      "specs": [
+        45,
+        45,
+        60
+      ],
+      "buffs": [
+        {
+          "spec": 1,
+          "direction": "right",
+          "value": 0.3
+        }
+      ],
+      "debuffs": [
+        {
+          "vuln": 104,
+          "direction": "forward-right",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "code": "card_24",
+      "tier": 2,
+      "type": "destroyer",
+      "tags": [],
+      "specs": [
+        40,
+        40,
+        60
+      ],
+      "buffs": [
+        {
+          "spec": 2,
+          "direction": "left",
+          "value": 0.3
+        }
+      ],
+      "debuffs": [
+        {
+          "vuln": 102,
+          "direction": "forward",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "code": "card_25",
+      "tier": 2,
+      "type": "destroyer",
+      "tags": [],
+      "specs": [
+        45,
+        30,
+        65
+      ],
+      "buffs": [
+        {
+          "spec": 2,
+          "direction": "right",
+          "value": 0.3
+        }
+      ],
+      "debuffs": [
+        {
+          "vuln": 104,
+          "direction": "forward-left",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "code": "card_26",
+      "tier": 1,
+      "type": "destroyer",
+      "tags": [],
+      "specs": [
+        30,
+        30,
+        50
+      ],
+      "buffs": [],
+      "debuffs": [
+        {
+          "vuln": 102,
+          "direction": "forward-right",
+          "value": 0.2
+        },
+        {
+          "vuln": 104,
+          "direction": "forward",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "code": "card_27",
+      "tier": 1,
+      "type": "destroyer",
+      "tags": [],
+      "specs": [
+        30,
+        30,
+        45
+      ],
+      "buffs": [],
+      "debuffs": [
+        {
+          "vuln": 100,
+          "direction": "forward-left",
+          "value": 0.2
+        },
+        {
+          "vuln": 102,
+          "direction": "forward-right",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "code": "card_28",
+      "tier": 1,
+      "type": "destroyer",
+      "tags": [],
+      "specs": [
+        30,
+        30,
+        40
+      ],
+      "buffs": [
+        {
+          "spec": 1,
+          "direction": "right",
+          "value": 0.3
+        }
+      ],
+      "debuffs": [
+        {
+          "vuln": 101,
+          "direction": "forward",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "code": "card_29",
+      "tier": 1,
+      "type": "destroyer",
+      "tags": [],
+      "specs": [
+        30,
+        20,
+        50
+      ],
+      "buffs": [
+        {
+          "spec": 1,
+          "direction": "left",
+          "value": 0.3
+        }
+      ],
+      "debuffs": [
+        {
+          "vuln": 102,
+          "direction": "forward-left",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "code": "card_30",
+      "tier": 1,
+      "type": "destroyer",
+      "tags": [],
+      "specs": [
+        30,
+        20,
+        50
+      ],
+      "buffs": [
+        {
+          "spec": 2,
+          "direction": "right",
+          "value": 0.3
+        }
+      ],
+      "debuffs": [
+        {
+          "vuln": 104,
+          "direction": "forward-right",
+          "value": 0.2
+        }
+      ]
+    }
+  ],
+  "enemies": [
+    {
+      "code": "vehicle_1",
+      "type": "aircraft",
+      "tags": []
+    },
+    {
+      "code": "vehicle_2",
+      "type": "aircraft",
+      "tags": []
+    },
+    {
+      "code": "vehicle_3",
+      "type": "aircraft",
+      "tags": []
+    },
+    {
+      "code": "vehicle_4",
+      "type": "battleship",
+      "tags": []
+    },
+    {
+      "code": "vehicle_5",
+      "type": "battleship",
+      "tags": []
+    },
+    {
+      "code": "vehicle_6",
+      "type": "cruiser",
+      "tags": []
+    },
+    {
+      "code": "vehicle_7",
+      "type": "cruiser",
+      "tags": []
+    },
+    {
+      "code": "vehicle_8",
+      "type": "cruiser",
+      "tags": []
+    },
+    {
+      "code": "vehicle_9",
+      "type": "destroyer",
+      "tags": []
+    },
+    {
+      "code": "vehicle_10",
+      "type": "destroyer",
+      "tags": []
+    },
+    {
+      "code": "vehicle_11",
+      "type": "destroyer",
+      "tags": []
+    },
+    {
+      "code": "vehicle_12",
+      "type": "coastal_artillery",
+      "tags": []
+    },
+    {
+      "code": "vehicle_13",
+      "type": "coastal_artillery",
+      "tags": []
+    },
+    {
+      "code": "vehicle_14",
+      "type": "submarine",
+      "tags": []
+    },
+    {
+      "code": "vehicle_15",
+      "type": "naval_mine",
+      "tags": []
+    },
+    {
+      "code": "boss_1",
+      "type": "battleship",
+      "tags": [
+        "epic_boss"
+      ]
+    },
+    {
+      "code": "boss_2",
+      "type": "battleship",
+      "tags": [
+        "epic_boss"
+      ]
+    },
+    {
+      "code": "boss_3",
+      "type": "destroyer",
+      "tags": [
+        "epic_boss"
+      ]
+    },
+    {
+      "code": "boss_4",
+      "type": "aircraft",
+      "tags": [
+        "epic_boss"
+      ]
+    },
+    {
+      "code": "boss_5",
+      "type": "coastal_artillery",
+      "tags": [
+        "epic_boss"
+      ]
+    },
+    {
+      "code": "boss_6",
+      "type": "battleship",
+      "tags": [
+        "epic_boss"
+      ]
+    },
+    {
+      "code": "boss_7",
+      "type": "cruiser",
+      "tags": [
+        "epic_boss"
+      ]
+    },
+    {
+      "code": "boss_8",
+      "type": "cruiser",
+      "tags": [
+        "epic_boss"
+      ]
+    }
+  ],
+  "modifiers": [
+    {
+      "id": "gunners-training",
+      "type": 1,
+      "rarity": "common",
+      "price": 12
+    },
+    {
+      "id": "damage-control-training",
+      "type": 1,
+      "rarity": "common",
+      "price": 12
+    },
+    {
+      "id": "rudder-crew-training",
+      "type": 1,
+      "rarity": "common",
+      "price": 12
+    },
+    {
+      "id": "focused",
+      "type": 2,
+      "rarity": "rare",
+      "price": null
+    },
+    {
+      "id": "teamwork",
+      "type": 1,
+      "rarity": "common",
+      "price": 12
+    },
+    {
+      "id": "specialization",
+      "type": 2,
+      "rarity": "rare",
+      "price": null
+    },
+    {
+      "id": "sea-dog",
+      "type": 2,
+      "rarity": "rare",
+      "price": null
+    },
+    {
+      "id": "fast-repair",
+      "type": 2,
+      "rarity": "rare",
+      "price": null
+    },
+    {
+      "id": "effectiveness",
+      "type": 1,
+      "rarity": "common",
+      "price": 18
+    },
+    {
+      "id": "moral-impact",
+      "type": 1,
+      "rarity": "common",
+      "price": 12
+    },
+    {
+      "id": "unstoppable",
+      "type": 2,
+      "rarity": "rare",
+      "price": null
+    }
+  ]
+}
