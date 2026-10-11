@@ -1,0 +1,122 @@
+.dock {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 12px 4px;
+  border-top: 1px solid rgba(144, 180, 181, 0.22);
+  background: linear-gradient(rgba(11, 42, 48, 0.6), rgba(11, 42, 48, 0.95));
+  min-width: 0;
+}
+
+.mods {
+  display: grid;
+  grid-template-columns: repeat(6, 36px);
+  gap: 8px 7px;
+  flex: none;
+  padding-right: 14px;
+  border-right: 1px solid rgba(144, 180, 181, 0.2);
+}
+
+.mod {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.mod:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.special:first-of-type {
+  margin-left: 0;
+}
+
+.mod img {
+  width: 100%;
+  height: 100%;
+  border-radius: 5px;
+}
+
+.mod span {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: var(--ink);
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+}
+
+.modOff {
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+
+.modReserved span {
+  color: var(--enemy-stock);
+  box-shadow: inset 0 0 0 1px var(--enemy-stock);
+}
+
+.modOver {
+  outline: 2px solid var(--kill);
+  outline-offset: 1px;
+}
+
+.modOver span {
+  background: var(--kill);
+}
+
+.cards {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 8px 4px 4px;
+  scroll-snap-type: x proximity;
+  flex: 1;
+  min-width: 0;
+  mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 56px), transparent);
+}
+
+.cards::after {
+  content: '';
+  flex: none;
+  width: 40px;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  scroll-snap-align: start;
+}
+
+.tag {
+  min-height: 16px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--sea-ink-dim);
+  white-space: nowrap;
+}
+
+.tag_assigned {
+  color: var(--enemy-stock);
+}
+
+.tag_used,
+.tag_depleted,
+.tag_banned {
+  color: #ff9a8a;
+}

@@ -1,0 +1,327 @@
+.stars {
+  display: inline-flex;
+  gap: 1px;
+  vertical-align: -0.12em;
+}
+
+.stars svg {
+  width: 1em;
+  height: 1em;
+}
+
+.starOn {
+  fill: var(--enemy-stock);
+  stroke: var(--enemy-ink);
+  stroke-width: 1.2;
+}
+
+.starOff {
+  fill: transparent;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  opacity: 0.45;
+}
+
+.hp {
+  display: inline-flex;
+  gap: 2px;
+  width: 54px;
+  height: 7px;
+}
+
+.hpCompact {
+  width: 36px;
+  height: 5px;
+}
+
+.hpSeg {
+  flex: 1;
+  background: rgba(20, 20, 20, 0.28);
+  border-radius: 1px;
+  box-shadow: inset 0 0 0 1px rgba(20, 20, 20, 0.35);
+}
+
+.hpOn {
+  background: #4d8b4f;
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.25);
+}
+
+.hpLow {
+  background: var(--kill);
+}
+
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--sea-line);
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--sea-900);
+}
+
+.segment {
+  border: 0;
+  background: transparent;
+  color: var(--sea-ink-dim);
+  padding: 5px 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.segment + .segment {
+  border-left: 1px solid var(--sea-line);
+}
+
+.segment:hover {
+  color: var(--sea-ink);
+  background: var(--sea-700);
+}
+
+.segmentOn,
+.segmentOn:hover {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.segmentedSm .segment {
+  padding: 3px 8px;
+  font-size: var(--size-small);
+}
+
+:global(.paper) .segmented {
+  border-color: var(--rule-strong);
+  background: transparent;
+}
+
+:global(.paper) .segment {
+  color: var(--ink-2);
+}
+
+:global(.paper) .segment + .segment {
+  border-left-color: var(--rule-strong);
+}
+
+:global(.paper) .segment:hover {
+  background: var(--paper-2);
+  color: var(--ink);
+}
+
+:global(.paper) .segmentOn,
+:global(.paper) .segmentOn:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.dialog {
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.4), 0 24px 60px -12px rgba(0, 0, 0, 0.65);
+}
+
+.dialogWide {
+  width: min(980px, calc(100vw - 32px));
+}
+
+.dialog::backdrop {
+  background: rgba(7, 26, 30, 0.62);
+  backdrop-filter: blur(2px);
+}
+
+.dialog[open] {
+  animation: dialogIn var(--dur-mid) var(--ease-out);
+}
+
+@keyframes dialogIn {
+  from {
+    transform: translateY(8px) scale(0.985);
+    opacity: 0;
+  }
+}
+
+.dialogBody {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 48px);
+}
+
+.dialogHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: 14px 18px 10px;
+  border-bottom: 3px solid var(--ink);
+}
+
+.dialogHeader h2 {
+  font-size: var(--size-title);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.close {
+  border: 0;
+  background: transparent;
+  width: 30px;
+  height: 30px;
+  border-radius: 4px;
+  display: grid;
+  place-items: center;
+  color: var(--ink-2);
+}
+
+.close:hover {
+  background: var(--paper-2);
+  color: var(--ink);
+}
+
+.close svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+.dialogContent {
+  padding: 16px 18px;
+  overflow: auto;
+}
+
+.dialogFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: 12px 18px;
+  border-top: 1px solid var(--rule);
+  background: var(--paper-2);
+  border-radius: 0 0 6px 6px;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 4px 12px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.button:disabled {
+  opacity: 0.45;
+}
+
+.button_plain {
+  background: var(--sea-600);
+  border-color: var(--sea-line);
+  color: var(--sea-ink);
+}
+
+.button_plain:hover:not(:disabled) {
+  background: var(--sea-500);
+}
+
+.button_primary {
+  background: var(--paper);
+  border-color: var(--paper);
+  color: var(--ink);
+  border-radius: 2px;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+.button_primary:hover:not(:disabled) {
+  background: #fff;
+}
+
+:global(.paper) .button_primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+:global(.paper) .button_primary:hover:not(:disabled) {
+  background: #2c3336;
+}
+
+.button_danger {
+  background: transparent;
+  border-color: var(--kill);
+  color: var(--kill);
+}
+
+.button_danger:hover:not(:disabled) {
+  background: var(--kill);
+  color: #fff;
+}
+
+.button_ghost {
+  background: transparent;
+  color: inherit;
+  border-color: currentColor;
+  opacity: 0.85;
+}
+
+.button_ghost:hover:not(:disabled) {
+  opacity: 1;
+}
+
+:global(.paper) .button_plain {
+  background: var(--paper);
+  border-color: var(--rule-strong);
+  color: var(--ink);
+}
+
+:global(.paper) .button_plain:hover:not(:disabled) {
+  background: var(--paper-3);
+}
+
+.odds {
+  font-family: var(--font-factor);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.odds small {
+  font-size: 0.55em;
+  font-weight: 600;
+  margin-left: 1px;
+}
+
+.odds_sm {
+  font-size: 15px;
+}
+
+.odds_lg {
+  font-size: 34px;
+}
+
+.oddsCertain {
+  color: var(--odds-certain, #7fd18a);
+}
+
+.oddsLikely {
+  color: var(--odds-likely, var(--sea-ink));
+}
+
+.oddsUnlikely {
+  color: var(--odds-unlikely, var(--enemy-stock));
+}
+
+.oddsZero {
+  color: var(--odds-zero, #ff7a66);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}

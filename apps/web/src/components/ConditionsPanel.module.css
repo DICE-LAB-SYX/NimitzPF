@@ -1,0 +1,134 @@
+.panel {
+  border-radius: 2px;
+  border-top: 3px solid var(--rule-strong);
+  background: var(--paper);
+  color: var(--ink);
+  padding: 12px 14px 14px;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35), 0 10px 24px -14px rgba(0, 0, 0, 0.7);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--ink);
+  margin-bottom: 8px;
+}
+
+.header h2 {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.header button {
+  color: var(--ink);
+  min-height: 26px;
+  font-size: var(--size-small);
+}
+
+.empty {
+  color: var(--ink-3);
+  font-size: var(--size-small);
+  padding: 4px 0;
+}
+
+.buckets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px 18px;
+}
+
+.bucket h3 {
+  font-size: var(--size-small);
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--paper-3);
+  padding: 2px 8px;
+  border-radius: 2px;
+  margin-bottom: 6px;
+  letter-spacing: 0.08em;
+}
+
+.bucket ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.removed {
+  opacity: 0.55;
+}
+
+.removed .line strong {
+  text-decoration: line-through;
+}
+
+.badge {
+  width: 52px;
+  height: auto;
+  border-radius: 3px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.body {
+  min-width: 0;
+}
+
+.line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.line strong {
+  font-size: var(--size-table);
+}
+
+.value {
+  font-weight: 700;
+  font-size: 17px;
+}
+
+.bad {
+  color: var(--kill);
+}
+
+.good {
+  color: var(--gain);
+}
+
+.pending,
+.tag {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 0 5px;
+  border-radius: 2px;
+  border: 1px solid currentColor;
+  color: var(--ink-2);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  font-size: var(--size-small);
+  color: var(--ink-3);
+}
+
+.targets {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}

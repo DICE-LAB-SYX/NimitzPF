@@ -1,0 +1,50 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hint {
+  font-size: var(--size-small);
+  color: var(--ink-3);
+  max-width: 60ch;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(120px, 2fr) 40px;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px dotted var(--rule);
+}
+
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.badge {
+  font-size: 11px;
+}
+
+.row input[type='range'] {
+  width: 100%;
+  accent-color: var(--ink);
+}
+
+.row output {
+  text-align: right;
+  font-weight: 700;
+  font-size: 18px;
+}

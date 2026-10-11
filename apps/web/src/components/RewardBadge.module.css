@@ -1,0 +1,41 @@
+.badge {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 2.6em;
+  height: 2.6em;
+  border-radius: 0.25em;
+  background: #e4e1d8;
+  box-shadow: 0 0 0 0.08em rgba(20, 20, 20, 0.25), 0 1px 3px rgba(0, 0, 0, 0.45);
+  transform: rotate(6deg);
+}
+
+.badge img {
+  width: 82%;
+  height: 82%;
+  object-fit: contain;
+  border-radius: 0.15em;
+}
+
+.badge b {
+  position: absolute;
+  right: -0.35em;
+  bottom: -0.3em;
+  min-width: 1.35em;
+  height: 1.35em;
+  padding: 0 0.2em;
+  display: grid;
+  place-items: center;
+  border-radius: 0.15em;
+  background: var(--ink);
+  color: #fff;
+  font-size: max(var(--size-small), 0.85em);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.unknown {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--ink-3);
+}

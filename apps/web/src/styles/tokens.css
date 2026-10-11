@@ -1,0 +1,65 @@
+:root {
+  --sea-900: #0b2a30;
+  --sea-800: #10343b;
+  --sea-700: #143f47;
+  --sea-600: #1a4c55;
+  --sea-500: #23616b;
+  --sea-line: #3d7b84;
+  --sea-ink: #d2e4e3;
+  --sea-ink-dim: #90b4b5;
+
+  --ally-stock: #b8cedb;
+  --ally-stock-deep: #9db9ca;
+  --ally-ink: #10222e;
+  --enemy-stock: #d9a23a;
+  --enemy-stock-deep: #c48c26;
+  --enemy-ink: #241703;
+
+  --kill: #c3321f;
+  --kill-deep: #9e2414;
+  --gain: #2f7a4b;
+
+  --paper: #ece7da;
+  --paper-2: #e2dbc8;
+  --paper-3: #d5cdb7;
+  --rule: #a49c87;
+  --rule-strong: #141414;
+  --ink: #141414;
+  --ink-2: #433f37;
+  --ink-3: #686152;
+
+  --font-latin: 'Barlow Semi Condensed', 'Barlow Condensed';
+  --font-cjk-hans: 'Noto Sans SC Variable', 'Noto Sans SC';
+  --font-cjk-hant: 'Noto Sans TC Variable', 'Noto Sans TC';
+  --font-ui: var(--font-latin), var(--font-cjk-hans), sans-serif;
+  --font-factor: 'Barlow Condensed', 'Barlow Semi Condensed', var(--font-cjk-hans), sans-serif;
+
+  --size-table: 14px;
+  --size-small: 12px;
+  --size-label: 13px;
+  --size-title: 20px;
+  --size-factor: 15px;
+  --line-table: 1.35;
+
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 8px;
+  --space-4: 12px;
+  --space-5: 16px;
+  --space-6: 24px;
+  --space-7: 32px;
+
+  --counter: 76px;
+  --counter-radius: 7px;
+  --counter-lift: 0 1px 0 rgba(0, 0, 0, 0.35), 0 3px 6px -2px rgba(0, 0, 0, 0.45);
+  --counter-lift-hover: 0 1px 0 rgba(0, 0, 0, 0.35), 0 8px 14px -6px rgba(0, 0, 0, 0.55);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 120ms;
+  --dur-mid: 220ms;
+}
+
+:root:lang(zh-Hant) {
+  --font-ui: var(--font-latin), var(--font-cjk-hant), sans-serif;
+  --font-factor: 'Barlow Condensed', 'Barlow Semi Condensed', var(--font-cjk-hant), sans-serif;
+}

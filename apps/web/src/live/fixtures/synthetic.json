@@ -1,0 +1,907 @@
+{
+  "at": 0,
+  "host": "pacificfront.worldofwarships.asia",
+  "realm": "sg",
+  "build": null,
+  "settings": null,
+  "state": {
+    "timestamp": 1791900000,
+    "status": {
+      "state": "in_operation",
+      "operationId": 101,
+      "stageId": 11,
+      "onboardingStep": 0,
+      "isOperationReadyToComplete": false,
+      "isStaff": false,
+      "accountId": null,
+      "accountNickname": null
+    },
+    "progress": {
+      "progressPoints": 420,
+      "spentProgressPoints": 0
+    },
+    "operations": [
+      {
+        "id": 102,
+        "name": "op1",
+        "tags": [
+          "easy"
+        ],
+        "isFinished": false,
+        "expireAt": 1792000000
+      },
+      {
+        "id": 101,
+        "name": "op3",
+        "tags": [
+          "medium"
+        ],
+        "isFinished": false,
+        "expireAt": 1792000000
+      }
+    ]
+  },
+  "operations": {
+    "101": {
+      "id": 101,
+      "name": "op3",
+      "tags": [
+        "medium"
+      ],
+      "isStarted": true,
+      "isFinished": false,
+      "expireAt": 1792000000,
+      "bosses": [
+        {
+          "code": "boss_2",
+          "tags": [
+            "epic_boss"
+          ]
+        }
+      ],
+      "stages": [
+        {
+          "id": 11,
+          "isActive": true,
+          "isFinished": false,
+          "isRevealed": true,
+          "condition": {
+            "type": "defeat_vehicles",
+            "target": 7,
+            "total": 3
+          },
+          "keypoints": [
+            {
+              "id": 1001,
+              "name": "keypoint_1",
+              "status": "cleared",
+              "tags": [
+                "easy"
+              ],
+              "slots": {
+                "0": {
+                  "enemy": {
+                    "code": "vehicle_1",
+                    "type": "aircraft",
+                    "tier": 1,
+                    "specs": {
+                      "0": 40,
+                      "1": 30,
+                      "2": 40
+                    },
+                    "vulns": {
+                      "100": 1
+                    },
+                    "tags": []
+                  },
+                  "rewards": [
+                    {
+                      "type": "currency",
+                      "code": "eventum_1",
+                      "amount": 20,
+                      "boostable": false
+                    }
+                  ],
+                  "ally": {
+                    "code": "card_7",
+                    "health": 3,
+                    "modifiers": []
+                  },
+                  "outcome": "win"
+                },
+                "1": {
+                  "enemy": {
+                    "code": "vehicle_9",
+                    "type": "destroyer",
+                    "tier": 1,
+                    "specs": {
+                      "0": 45,
+                      "1": 30,
+                      "2": 35
+                    },
+                    "vulns": {
+                      "104": 1
+                    },
+                    "tags": []
+                  },
+                  "rewards": [
+                    {
+                      "type": "currency",
+                      "code": "eventum_1",
+                      "amount": 20,
+                      "boostable": false
+                    }
+                  ],
+                  "ally": {
+                    "code": "card_13",
+                    "health": 3,
+                    "modifiers": [
+                      "gunners-training"
+                    ]
+                  },
+                  "outcome": "win"
+                },
+                "2": {
+                  "enemy": {
+                    "code": "vehicle_6",
+                    "type": "cruiser",
+                    "tier": 1,
+                    "specs": {
+                      "0": 40,
+                      "1": 35,
+                      "2": 35
+                    },
+                    "vulns": {
+                      "103": 0.5
+                    },
+                    "tags": []
+                  },
+                  "rewards": [
+                    {
+                      "type": "currency",
+                      "code": "eventum_1",
+                      "amount": 20,
+                      "boostable": false
+                    }
+                  ],
+                  "ally": {
+                    "code": "card_21",
+                    "health": 3,
+                    "modifiers": []
+                  },
+                  "outcome": "win"
+                },
+                "3": {
+                  "enemy": {
+                    "code": "vehicle_12",
+                    "type": "coastal_artillery",
+                    "tier": 1,
+                    "specs": {
+                      "0": 50,
+                      "1": 25,
+                      "2": 30
+                    },
+                    "vulns": {},
+                    "tags": []
+                  },
+                  "rewards": [
+                    {
+                      "type": "currency",
+                      "code": "eventum_2",
+                      "amount": 10,
+                      "boostable": true
+                    }
+                  ],
+                  "ally": {
+                    "code": "card_1",
+                    "health": 3,
+                    "modifiers": []
+                  },
+                  "outcome": "lose"
+                }
+              }
+            },
+            {
+              "id": 1002,
+              "name": "keypoint_2",
+              "status": "revealed",
+              "tags": [
+                "medium"
+              ],
+              "slots": {
+                "0": {
+                  "enemy": {
+                    "code": "vehicle_4",
+                    "type": "battleship",
+                    "tier": 2,
+                    "specs": {
+                      "0": 70,
+                      "1": 50,
+                      "2": 30
+                    },
+                    "vulns": {
+                      "103": 1
+                    },
+                    "tags": []
+                  },
+                  "rewards": [
+                    {
+                      "type": "currency",
+                      "code": "eventum_1",
+                      "amount": 40,
+                      "boostable": false
+                    }
+                  ]
+                },
+                "1": {
+                  "enemy": {
+                    "code": "vehicle_10",
+                    "type": "destroyer",
+                    "tier": 2,
+                    "specs": {
+                      "0": 55,
+                      "1": 45,
+                      "2": 50
+                    },
+                    "vulns": {
+                      "101": 0.5,
+                      "104": 1
+                    },
+                    "tags": []
+                  },
+                  "rewards": [
+                    {
+                      "type": "currency",
+                      "code": "eventum_1",
+                      "amount": 40,
+                      "boostable": false
+                    }
+                  ]
+                },
+                "2": {
+                  "enemy": {
+                    "code": "vehicle_2",
+                    "type": "aircraft",
+                    "tier": 2,
+                    "specs": {
+                      "0": 60,
+                      "1": 40,
+                      "2": 55
+                    },
+                    "vulns": {
+                      "100": 1
+                    },
+                    "tags": []
+                  },
+                  "rewards": [
+                    {
+                      "type": "entitlement",
+                      "code": "adeck2_modifier_moralImpact",
+                      "amount": 1
+                    }
+                  ]
+                },
+                "3": {
+                  "enemy": {
+                    "code": "vehicle_7",
+                    "type": "cruiser",
+                    "tier": 2,
+                    "specs": {
+                      "0": 55,
+                      "1": 55,
+                      "2": 40
+                    },
+                    "vulns": {
+                      "102": 1
+                    },
+                    "tags": []
+                  },
+                  "rewards": [
+                    {
+                      "type": "currency",
+                      "code": "eventum_1",
+                      "amount": 40,
+                      "boostable": false
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": 1003,
+              "name": "keypoint_3",
+              "status": "revealed",
+              "tags": [
+                "hard"
+              ],
+              "slots": {
+                "0": {
+                  "enemy": {
+                    "code": "vehicle_5",
+                    "type": "battleship",
+                    "tier": 3,
+                    "specs": {
+                      "0": 85,
+                      "1": 60,
+                      "2": 45
+                    },
+                    "vulns": {
+                      "103": 1
+                    },
+                    "tags": []
+                  },
+                  "rewards": [
+                    {
+                      "type": "currency",
+                      "code": "eventum_2",
+                      "amount": 30,
+                      "boostable": true
+                    }
+                  ]
+                },
+                "1": {
+                  "enemy": {
+                    "code": "vehicle_11",
+                    "type": "destroyer",
+                    "tier": 3,
+                    "specs": {
+                      "0": 70,
+                      "1": 55,
+                      "2": 65
+                    },
+                    "vulns": {
+                      "104": 1
+                    },
+                    "tags": []
+                  },
+                  "rewards": [
+                    {
+                      "type": "currency",
+                      "code": "eventum_1",
+                      "amount": 60,
+                      "boostable": false
+                    }
+                  ]
+                },
+                "2": {
+                  "enemy": {
+                    "code": "vehicle_13",
+                    "type": "coastal_artillery",
+                    "tier": 3,
+                    "specs": {
+                      "0": 80,
+                      "1": 60,
+                      "2": 40
+                    },
+                    "vulns": {
+                      "105": 1
+                    },
+                    "tags": []
+                  },
+                  "rewards": [
+                    {
+                      "type": "currency",
+                      "code": "eventum_1",
+                      "amount": 60,
+                      "boostable": false
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": 12,
+          "isActive": false,
+          "isFinished": false,
+          "isRevealed": false,
+          "condition": {
+            "type": "defeat_vehicles",
+            "target": 6,
+            "total": 0
+          },
+          "keypoints": [
+            {
+              "id": 1004,
+              "name": "keypoint_4",
+              "status": "unrevealed",
+              "tags": [
+                "easy"
+              ]
+            },
+            {
+              "id": 1005,
+              "name": "keypoint_5",
+              "status": "unrevealed",
+              "tags": [
+                "medium"
+              ]
+            },
+            {
+              "id": 1006,
+              "name": "keypoint_6",
+              "status": "unrevealed",
+              "tags": [
+                "hard"
+              ]
+            }
+          ]
+        },
+        {
+          "id": 13,
+          "isActive": false,
+          "isFinished": false,
+          "isRevealed": false,
+          "condition": {
+            "type": "defeat_vehicles",
+            "target": 4,
+            "total": 0
+          },
+          "keypoints": [
+            {
+              "id": 1007,
+              "name": "keypoint_7",
+              "status": "unrevealed",
+              "tags": [
+                "medium"
+              ]
+            },
+            {
+              "id": 1008,
+              "name": "keypoint_8",
+              "status": "unrevealed",
+              "tags": [
+                "hard"
+              ]
+            }
+          ]
+        }
+      ],
+      "effects": [
+        {
+          "source": 1002,
+          "applyTo": [
+            1002
+          ],
+          "isSubsequent": false,
+          "isMitigable": false,
+          "payload": {
+            "type": 1,
+            "specs": {
+              "0": -0.2,
+              "1": -0.2,
+              "2": -0.2
+            },
+            "apply_restrictions": {
+              "types": [
+                "destroyer"
+              ]
+            }
+          }
+        },
+        {
+          "source": 1003,
+          "applyTo": [
+            1004,
+            1005
+          ],
+          "isSubsequent": false,
+          "isMitigable": false,
+          "payload": {
+            "type": 4,
+            "specs": {
+              "0": 0.2,
+              "1": 0.2,
+              "2": 0.2
+            }
+          }
+        },
+        {
+          "source": 1003,
+          "applyTo": [],
+          "isSubsequent": true,
+          "isMitigable": true,
+          "payload": {
+            "type": 2,
+            "multiplier": 0.7,
+            "delta_multiplier": 0
+          }
+        },
+        {
+          "source": null,
+          "applyTo": [
+            1003
+          ],
+          "isSubsequent": false,
+          "isMitigable": false,
+          "payload": {
+            "type": 6,
+            "restrictions": {
+              "types": [
+                "aircraft"
+              ]
+            }
+          }
+        },
+        {
+          "source": 1001,
+          "applyTo": [
+            1002
+          ],
+          "isSubsequent": false,
+          "isMitigable": false,
+          "payload": {
+            "type": 4,
+            "specs": {
+              "0": 0.15,
+              "1": 0.15,
+              "2": 0.15
+            }
+          }
+        }
+      ]
+    },
+    "102": {
+      "id": 102,
+      "name": "op1",
+      "tags": [
+        "easy"
+      ],
+      "isStarted": false,
+      "isFinished": false,
+      "expireAt": 1792000000,
+      "stages": [
+        {
+          "id": 21,
+          "isActive": false,
+          "isFinished": false,
+          "isRevealed": true,
+          "condition": {
+            "type": "defeat_vehicles",
+            "target": 5,
+            "total": 0
+          },
+          "keypoints": [
+            {
+              "id": 2001,
+              "name": "keypoint_1",
+              "status": "revealed",
+              "tags": [
+                "easy"
+              ],
+              "slots": {
+                "0": {
+                  "enemy": {
+                    "code": "vehicle_3",
+                    "type": "aircraft",
+                    "tier": 1,
+                    "specs": {
+                      "0": 45,
+                      "1": 25,
+                      "2": 40
+                    },
+                    "vulns": {
+                      "100": 1
+                    },
+                    "tags": []
+                  },
+                  "rewards": [
+                    {
+                      "type": "currency",
+                      "code": "eventum_1",
+                      "amount": 30,
+                      "boostable": false
+                    }
+                  ]
+                },
+                "1": {
+                  "enemy": {
+                    "code": "vehicle_8",
+                    "type": "cruiser",
+                    "tier": 1,
+                    "specs": {
+                      "0": 40,
+                      "1": 40,
+                      "2": 30
+                    },
+                    "vulns": {
+                      "103": 1
+                    },
+                    "tags": []
+                  },
+                  "rewards": [
+                    {
+                      "type": "currency",
+                      "code": "eventum_1",
+                      "amount": 30,
+                      "boostable": false
+                    }
+                  ]
+                },
+                "2": {
+                  "enemy": {
+                    "code": "vehicle_14",
+                    "type": "submarine",
+                    "tier": 1,
+                    "specs": {
+                      "0": 50,
+                      "1": 20,
+                      "2": 40
+                    },
+                    "vulns": {
+                      "101": 1
+                    },
+                    "tags": []
+                  },
+                  "rewards": [
+                    {
+                      "type": "currency",
+                      "code": "eventum_1",
+                      "amount": 30,
+                      "boostable": false
+                    }
+                  ]
+                },
+                "3": {
+                  "enemy": {
+                    "code": "vehicle_15",
+                    "type": "naval_mine",
+                    "tier": 1,
+                    "specs": {
+                      "0": 55,
+                      "1": 30,
+                      "2": 20
+                    },
+                    "vulns": {},
+                    "tags": []
+                  },
+                  "rewards": [
+                    {
+                      "type": "currency",
+                      "code": "eventum_1",
+                      "amount": 30,
+                      "boostable": false
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "id": 2002,
+              "name": "keypoint_2",
+              "status": "revealed",
+              "tags": [
+                "medium"
+              ],
+              "slots": {
+                "0": {
+                  "enemy": {
+                    "code": "vehicle_4",
+                    "type": "battleship",
+                    "tier": 2,
+                    "specs": {
+                      "0": 65,
+                      "1": 55,
+                      "2": 30
+                    },
+                    "vulns": {
+                      "103": 1
+                    },
+                    "tags": []
+                  },
+                  "rewards": [
+                    {
+                      "type": "currency",
+                      "code": "eventum_1",
+                      "amount": 30,
+                      "boostable": false
+                    }
+                  ]
+                },
+                "1": {
+                  "enemy": {
+                    "code": "vehicle_9",
+                    "type": "destroyer",
+                    "tier": 2,
+                    "specs": {
+                      "0": 50,
+                      "1": 45,
+                      "2": 55
+                    },
+                    "vulns": {
+                      "104": 1
+                    },
+                    "tags": []
+                  },
+                  "rewards": [
+                    {
+                      "type": "currency",
+                      "code": "eventum_1",
+                      "amount": 30,
+                      "boostable": false
+                    }
+                  ]
+                },
+                "2": {
+                  "enemy": {
+                    "code": "vehicle_6",
+                    "type": "cruiser",
+                    "tier": 2,
+                    "specs": {
+                      "0": 55,
+                      "1": 50,
+                      "2": 45
+                    },
+                    "vulns": {
+                      "102": 1
+                    },
+                    "tags": []
+                  },
+                  "rewards": [
+                    {
+                      "type": "currency",
+                      "code": "eventum_1",
+                      "amount": 30,
+                      "boostable": false
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": 22,
+          "isActive": false,
+          "isFinished": false,
+          "isRevealed": false,
+          "condition": {
+            "type": "defeat_vehicles",
+            "target": 4,
+            "total": 0
+          },
+          "keypoints": [
+            {
+              "id": 2003,
+              "name": "keypoint_3",
+              "status": "unrevealed",
+              "tags": [
+                "medium"
+              ]
+            },
+            {
+              "id": 2004,
+              "name": "keypoint_4",
+              "status": "unrevealed",
+              "tags": [
+                "hard"
+              ]
+            }
+          ]
+        }
+      ],
+      "effects": []
+    }
+  },
+  "inventory": {
+    "cards": [
+      {
+        "code": "card_7",
+        "health": 2
+      },
+      {
+        "code": "card_8",
+        "health": 3
+      },
+      {
+        "code": "card_13",
+        "health": 2
+      },
+      {
+        "code": "card_14",
+        "health": 3
+      },
+      {
+        "code": "card_21",
+        "health": 2
+      },
+      {
+        "code": "card_22",
+        "health": 3
+      },
+      {
+        "code": "card_1",
+        "health": 2
+      },
+      {
+        "code": "card_2",
+        "health": 3
+      },
+      {
+        "code": "card_9",
+        "health": 3
+      },
+      {
+        "code": "card_15",
+        "health": 3
+      },
+      {
+        "code": "card_16",
+        "health": 3
+      },
+      {
+        "code": "card_23",
+        "health": 3
+      },
+      {
+        "code": "card_24",
+        "health": 3
+      },
+      {
+        "code": "card_3",
+        "health": 1
+      },
+      {
+        "code": "card_17",
+        "health": 3
+      }
+    ],
+    "modifiers": [
+      {
+        "id": "gunners-training",
+        "amount": 2
+      },
+      {
+        "id": "damage-control-training",
+        "amount": 2
+      },
+      {
+        "id": "rudder-crew-training",
+        "amount": 2
+      },
+      {
+        "id": "teamwork",
+        "amount": 2
+      },
+      {
+        "id": "effectiveness",
+        "amount": 1
+      },
+      {
+        "id": "moral-impact",
+        "amount": 2
+      },
+      {
+        "id": "focused",
+        "amount": 1
+      },
+      {
+        "id": "specialization",
+        "amount": 1
+      },
+      {
+        "id": "sea-dog",
+        "amount": 1
+      },
+      {
+        "id": "fast-repair",
+        "amount": 1
+      },
+      {
+        "id": "unstoppable",
+        "amount": 0
+      }
+    ],
+    "currencies": {
+      "eventum_1": 260,
+      "eventum_2": 90
+    }
+  },
+  "route": {
+    "lang": "zh-sg",
+    "operationId": "101",
+    "keypointId": "1002"
+  },
+  "error": null
+}
