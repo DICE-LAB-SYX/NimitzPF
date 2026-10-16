@@ -1,0 +1,149 @@
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--size-small);
+  font-weight: 600;
+  color: var(--sea-ink);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--enemy-stock);
+  cursor: pointer;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 46px;
+  margin: 0 0 10px;
+  padding: 7px 10px 7px 12px;
+  border-radius: 4px;
+  background: var(--sea-700);
+  box-shadow: inset 0 0 0 1px rgba(144, 180, 181, 0.25);
+  color: var(--sea-ink);
+  font-size: var(--size-small);
+}
+
+.badge {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #f3f6f3;
+  white-space: nowrap;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sea-ink-dim);
+}
+
+.running .dot {
+  background: var(--enemy-stock);
+  animation: pulse 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.25;
+  }
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.text p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.sub {
+  color: var(--sea-ink-dim);
+}
+
+.detail {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.tone_error {
+  background: rgba(195, 50, 31, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(195, 50, 31, 0.45);
+}
+
+.tone_error .main {
+  color: #f6cdc5;
+}
+
+.tone_done {
+  background: rgba(47, 122, 75, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(88, 179, 104, 0.4);
+}
+
+.tone_info .main {
+  color: #f3d9a4;
+}
+
+.links {
+  display: inline-flex;
+  gap: 10px;
+  margin-left: 8px;
+}
+
+.links a {
+  color: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
+.consent p {
+  margin: 0 0 10px;
+  line-height: 1.65;
+  color: var(--ink-2);
+}
+
+.consent p:last-child {
+  margin-bottom: 0;
+}
+
+.consent .stock {
+  padding: 8px 10px;
+  border-left: 3px solid var(--enemy-stock);
+  background: rgba(217, 162, 58, 0.12);
+  color: var(--ink);
+}
+
+.consent .risk {
+  color: var(--kill-deep);
+}
+
+.consent .warn {
+  padding: 8px 10px;
+  border-left: 3px solid var(--kill);
+  background: rgba(195, 50, 31, 0.08);
+  color: var(--ink);
+}
+

@@ -1,4 +1,6 @@
-import { envelope, opened, PROTOCOL, type BridgeMessage, type PanelMessage } from './protocol.ts'
+import { Driver } from './drive.ts'
+import { Player } from './play.ts'
+import { envelope, loaderOf, opened, PROTOCOL, type BridgeMessage, type PanelMessage } from './protocol.ts'
 import { Sync, type PageInfo } from './sync.ts'
 import { predict, type Adeck } from './verify.ts'
 
@@ -160,6 +162,19 @@ function mount(): void {
     cancel: handle => window.clearTimeout(handle as number),
     now: () => Date.now(),
   })
+  const loader = loaderOf(import.meta.url)
+  const driver = new Driver({
+    halted: () => player.halted(),
+    ownTarget: event => event.composedPath().includes(host),
+    covered: () => (layout.collapsed ? null : dock.getBoundingClientRect()),
+  })
+  const player: Player = new Player({
+    snapshot: () => sync.snapshot(),
+    loader,
+    driver,
+    label: () => (/^\/zh/.test(window.location.pathname) ? 'NimitzPF 自动操作中' : 'NimitzPF is playing'),
+    played: id => sync.mark(['state', 'inventory', `operation:${id}`], 0),
+  })
 
   window.addEventListener('message', event => {
     if (event.source !== frame.contentWindow || event.origin !== origin) return
@@ -167,7 +182,7 @@ function mount(): void {
     if (!message) return
     switch (message.type) {
       case 'ready':
-        post({ type: 'hello', protocol: PROTOCOL, host: window.location.host, realm: pageInfo().realm, engine: page.adeck?.version ?? null })
+        post({ type: 'hello', protocol: PROTOCOL, loader, host: window.location.host, realm: pageInfo().realm, engine: page.adeck?.version ?? null })
         post({ type: 'layout', collapsed: layout.collapsed, push: layout.push })
         post({ type: 'snapshot', snapshot: sync.snapshot() })
         break
@@ -179,6 +194,12 @@ function mount(): void {
         post({ type: 'verdict', id: message.id, ...verdict })
         break
       }
+      case 'play':
+        void player.play(message.request).then(result => post({ type: 'played', id: message.id, ...result }))
+        break
+      case 'halt':
+        player.halt()
+        break
       case 'layout':
         setLayout({
           ...(typeof message.collapsed === 'boolean' && { collapsed: message.collapsed }),

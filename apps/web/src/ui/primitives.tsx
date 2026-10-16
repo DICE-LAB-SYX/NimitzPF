@@ -117,14 +117,16 @@ export function Button({
   onClick,
   variant = 'plain',
   disabled,
+  title,
 }: {
   children: ReactNode
   onClick?: () => void
   variant?: 'plain' | 'primary' | 'danger' | 'ghost'
   disabled?: boolean
+  title?: string
 }) {
   return (
-    <button type="button" disabled={disabled} onClick={onClick} className={cx(css.button, css[`button_${variant}`])}>
+    <button type="button" disabled={disabled} onClick={onClick} title={title} className={cx(css.button, css[`button_${variant}`])}>
       {children}
     </button>
   )

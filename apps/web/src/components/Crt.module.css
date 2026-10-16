@@ -117,6 +117,16 @@
   color: var(--rule);
 }
 
+.outcome {
+  font-weight: 700;
+  font-size: var(--size-small);
+  color: var(--ink-3);
+}
+
+.outcomeWon {
+  color: var(--kill);
+}
+
 .caption {
   margin-top: -6px;
   font-size: 11px;

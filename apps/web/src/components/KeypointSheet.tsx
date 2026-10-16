@@ -25,6 +25,7 @@ import { useStore } from '../state/store.ts'
 import { Button, cx, Odds, Stars } from '../ui/primitives.tsx'
 import { Icon } from '../ui/Icon.tsx'
 import { useSize } from '../ui/useSize.ts'
+import { PlayButton } from './AutoPlay.tsx'
 import { ConditionsPanel, keypointName } from './ConditionsPanel.tsx'
 import css from './KeypointSheet.module.css'
 import { SlotDialog } from './SlotDialog.tsx'
@@ -79,8 +80,9 @@ export function useKeypointContext(): KeypointContext | null {
         if (v !== undefined) hp[code] = v
       }
     }
-    const evaluation = meta.revealed ? evaluatePlacements(kp, placements, conditions, hp) : null
-    const pending = swept && meta.revealed ? { sources: swept.sources, other: evaluatePlacements(kp, placements, active, hp) } : null
+    const live = meta.revealed && kp.status === 'open'
+    const evaluation = live ? evaluatePlacements(kp, placements, conditions, hp) : null
+    const pending = swept && live ? { sources: swept.sources, other: evaluatePlacements(kp, placements, active, hp) } : null
     return { op, kp, meta, stage, index, placements, manual: Boolean(override), hp, conditions, evaluation, pending }
   }, [op, selected, plan])
 }
@@ -202,6 +204,7 @@ export function KeypointSheet({ ctx }: { ctx: KeypointContext }) {
               {t('useRecommendation')}
             </Button>
           )}
+          <PlayButton ctx={ctx} />
         </div>
       </header>
 
@@ -235,10 +238,13 @@ export function KeypointSheet({ ctx }: { ctx: KeypointContext }) {
           {LANES.map(lane => {
             const l = lanesOk?.[lane]
             const alt = otherLanes?.[lane]?.probability ?? null
+            const outcome = fought && kp.lanes[lane] ? Boolean(kp.record?.[lane]?.won) : null
             return (
               <div key={lane} className={css.oddsCell}>
                 <span className={css.laneTag}>{lane + 1}</span>
-                {l && l.probability !== null ? (
+                {outcome !== null ? (
+                  <span className={cx(css.result, outcome ? css.resultWon : css.resultLost)}>{outcome ? t('destroyed') : t('laneSurvived')}</span>
+                ) : l && l.probability !== null ? (
                   <span className={css.oddsStack}>
                     <Odds probability={l.probability} size={compact ? 'sm' : 'lg'} />
                     {pending && alt !== null && (

@@ -1,6 +1,6 @@
-import { GAME_HOSTS } from './protocol.ts'
+import { GAME_HOSTS, LOADER } from './protocol.ts'
 
-export const USERSCRIPT_VERSION = '1.2.0'
+export const USERSCRIPT_VERSION = '1.3.0'
 export const USERSCRIPT_FILE = 'nimitzpf.user.js'
 export const PAGES_BASE = 'https://dice-lab-syx.github.io/NimitzPF/'
 export const USERSCRIPT_EVENT = 'nimitzpf:userscript'
@@ -17,7 +17,7 @@ export function userscript({ base, bridge, dev = false }: UserscriptOptions): st
     `// @name         NimitzPF${dev ? ' (dev)' : ''}`,
     `// @namespace    ${base}`,
     `// @version      ${USERSCRIPT_VERSION}`,
-    '// @description  太平洋战线（国服：大洋战线）阵容推荐面板：自动读取当前作战并给出推荐 / Pacific Front lineup planner',
+    '// @description  太平洋战线（国服叫大洋战线）排阵小助手：自动读作战、算好每个据点派谁，想偷懒还能让它替你开打 / Pacific Front lineup planner',
     ...GAME_HOSTS.map(h => `// @match        https://${h}/*`),
     ...(dev ? ['// @include      http://localhost:*/*', '// @include      http://127.0.0.1:*/*'] : [`// @match        ${base}*`]),
     '// @grant        none',
@@ -29,12 +29,12 @@ export function userscript({ base, bridge, dev = false }: UserscriptOptions): st
   ]
   const failure = dev
     ? {
-        zh: "'NimitzPF 加载失败：连不上本地开发服务器 ' + new URL(BASE).host + '。确认 pnpm dev 在运行，并在地址栏左侧的网站设置里允许“本地网络访问”，然后刷新页面。'",
-        en: "'NimitzPF failed to load from the dev server at ' + new URL(BASE).host + '. Make sure pnpm dev is running and allow local network access in the site settings, then reload.'",
+        zh: "'NimitzPF 加载失败：连不上本地开发服务器 ' + new URL(BASE).host + '。看看 pnpm dev 还开着没，再到地址栏左边的网站设置里放行“本地网络访问”，然后刷新一下。'",
+        en: "'NimitzPF failed to load from the dev server at ' + new URL(BASE).host + '. Is pnpm dev still running? Also allow local network access in the site settings, then reload.'",
       }
     : {
-        zh: "'NimitzPF 加载失败：连不上 ' + new URL(BASE).host + '。请检查网络后刷新页面。'",
-        en: "'NimitzPF failed to load from ' + new URL(BASE).host + '. Check your connection and reload the page.'",
+        zh: "'NimitzPF 加载失败：连不上 ' + new URL(BASE).host + '。检查下网络，再刷新页面试试～'",
+        en: "'NimitzPF failed to load: cannot reach ' + new URL(BASE).host + '. Check your connection and reload the page.'",
       }
   const body = `(() => {
   const BASE = ${JSON.stringify(base)}
@@ -60,7 +60,7 @@ export function userscript({ base, bridge, dev = false }: UserscriptOptions): st
   }
   const script = document.createElement('script')
   script.type = 'module'
-  script.src = BASE + ${JSON.stringify(bridge)} + '?v=' + Math.floor(Date.now() / 600000)
+  script.src = BASE + ${JSON.stringify(bridge)} + '?loader=${LOADER}&v=' + Math.floor(Date.now() / 600000)
   script.addEventListener('error', notice)
   document.head.append(script)
 })()

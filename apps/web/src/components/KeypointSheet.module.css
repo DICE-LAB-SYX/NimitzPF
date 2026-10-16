@@ -242,6 +242,25 @@
   color: var(--sea-ink-dim);
 }
 
+.result {
+  padding: 3px 9px;
+  border-radius: 3px;
+  font-size: var(--size-small);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.resultWon {
+  background: var(--kill);
+  color: var(--paper);
+}
+
+.resultLost {
+  border: 1px dashed var(--sea-ink-dim);
+  color: var(--sea-ink-dim);
+}
+
 .oddsStack {
   display: grid;
   justify-items: center;

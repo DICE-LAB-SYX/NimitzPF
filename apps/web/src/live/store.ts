@@ -10,11 +10,17 @@ import { DEFAULT_CURRENCIES, intelFrom, toLiveOperation, type CurrencyCodes, typ
 
 export type Connection = 'waiting' | 'live' | 'unauth' | 'no-season' | 'offline' | 'demo'
 
+export interface BridgeInfo {
+  readonly protocol: number
+  readonly loader: number
+}
+
 interface LiveState {
   readonly connection: Connection
   readonly snapshot: Snapshot | null
   readonly syncing: boolean
   readonly engine: string | null
+  readonly bridge: BridgeInfo | null
   readonly revision: number
   readonly data: RawGameData | null
   readonly layout: { readonly collapsed: boolean; readonly push: boolean } | null
@@ -25,6 +31,7 @@ export const useLive = create<LiveState>()(() => ({
   snapshot: null,
   syncing: false,
   engine: null,
+  bridge: null,
   revision: 0,
   data: null,
   layout: null,
@@ -145,7 +152,7 @@ export function receiveSnapshot(snapshot: Snapshot, connection?: Connection): vo
 export function receive(message: BridgeMessage): void {
   switch (message.type) {
     case 'hello':
-      useLive.setState({ engine: message.engine })
+      useLive.setState({ engine: message.engine, bridge: { protocol: message.protocol, loader: message.loader ?? 1 } })
       break
     case 'snapshot':
       receiveSnapshot(message.snapshot)

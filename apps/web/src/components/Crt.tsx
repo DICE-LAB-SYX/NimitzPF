@@ -131,6 +131,8 @@ export function Crt({ ctx }: { ctx: KeypointContext }) {
     kills += p
     dist = addBernoulli(dist, p, placements[i]?.standard === 'moral-impact' ? 2 : 1)
   })
+  const settled = kp.status !== 'open'
+  const won = kp.lanes.filter((enemy, i) => enemy && kp.record?.[i]?.won).length
   const need = removalNeed(op, kp.id)
   const removal = enemies && need !== null ? atLeast(dist, need) : null
   const hasOutgoing = need !== null
@@ -189,11 +191,13 @@ export function Crt({ ctx }: { ctx: KeypointContext }) {
     {
       group: t('keypointN', { n: meta.number }),
       stale: false,
-      rows: [
-        { label: t('allWin'), value: enemies ? pct(allWin) : '—' },
-        { label: t('expectedKills'), value: kills.toFixed(2), sub: `/${enemies}` },
-        ...(hasOutgoing ? [{ label: t('removalChance'), value: pct(removal) }] : []),
-      ],
+      rows: settled
+        ? [{ label: t('destroyed'), value: String(won), sub: `/${enemies}` }]
+        : [
+            { label: t('allWin'), value: enemies ? pct(allWin) : '—' },
+            { label: t('expectedKills'), value: kills.toFixed(2), sub: `/${enemies}` },
+            ...(hasOutgoing ? [{ label: t('removalChance'), value: pct(removal) }] : []),
+          ],
     },
     {
       group: `${t('stageN', { n: stage + 1 })} · ${t(op.stages[stage]?.goalEstimated ? 'stageGoalEstimated' : 'stageGoalUnits', { n: stageInput.goal })}${stageHasFlagship(stageInput) ? ` + ${t('primaryTarget')}` : ''}`,
@@ -275,10 +279,16 @@ export function Crt({ ctx }: { ctx: KeypointContext }) {
             })}
           </tr>
           <tr className={css.oddsRow}>
-            <th>{t('winChance')}</th>
-            {[0, 1, 2, 3].map(i => (
-              <OddsCell key={i} p={lanes?.[i]?.probability ?? null} />
-            ))}
+            <th>{settled ? t('laneResult') : t('winChance')}</th>
+            {[0, 1, 2, 3].map(i =>
+              settled ? (
+                <td key={i} className={kp.lanes[i] ? cx(css.outcome, kp.record?.[i]?.won && css.outcomeWon) : css.none}>
+                  {kp.lanes[i] ? (kp.record?.[i]?.won ? t('destroyed') : t('laneSurvived')) : '—'}
+                </td>
+              ) : (
+                <OddsCell key={i} p={lanes?.[i]?.probability ?? null} />
+              ),
+            )}
           </tr>
         </tbody>
       </table>

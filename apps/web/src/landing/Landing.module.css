@@ -86,6 +86,7 @@
 }
 
 .install h2,
+.tips h2,
 .help h2,
 .notes h2 {
   margin: 0 0 12px;
@@ -353,6 +354,36 @@
   font-weight: 600;
 }
 
+.tips ul {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tips li {
+  padding: 12px 14px;
+  border: 1px solid rgba(144, 180, 181, 0.22);
+  border-top: 3px solid var(--enemy-stock);
+  border-radius: 6px;
+  background: var(--sea-700);
+}
+
+.tips b {
+  display: block;
+  margin-bottom: 6px;
+  color: #f3f6f3;
+}
+
+.tips p {
+  margin: 0;
+  font-size: var(--size-small);
+  line-height: 1.65;
+  color: var(--sea-ink-dim);
+}
+
 .help {
   display: flex;
   flex-direction: column;
@@ -429,5 +460,9 @@
 
   .stepNo {
     font-size: 26px;
+  }
+
+  .tips ul {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

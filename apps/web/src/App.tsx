@@ -1,6 +1,7 @@
 import { DATA_BUILD } from '@nimitzpf/core'
 import { useEffect } from 'react'
 import css from './App.module.css'
+import { AutoBar } from './components/AutoPlay.tsx'
 import { Crt } from './components/Crt.tsx'
 import { Dock } from './components/Dock.tsx'
 import { KeypointSheet, useKeypointContext } from './components/KeypointSheet.tsx'
@@ -10,8 +11,8 @@ import { TopBar } from './components/TopBar.tsx'
 import { useT } from './i18n/useT.ts'
 import { downloadSnapshot } from './live/export.ts'
 import { currentOperation, useLive, useOperation, type Connection } from './live/store.ts'
-import { requestSolve, useAutoSolve } from './solver/plan.ts'
-import type { Operation } from './state/derive.ts'
+import { requestSolve, useAutoSolve, usePlanFor } from './solver/plan.ts'
+import { lacksModifiers, type Operation } from './state/derive.ts'
 import { useStore } from './state/store.ts'
 import { loadLocaleFonts } from './styles/fonts.ts'
 
@@ -75,6 +76,8 @@ function StatusScreen({ connection }: { connection: Connection }) {
 function Notices({ op }: { op: Operation }) {
   const t = useT()
   const data = useLive(s => s.data)
+  const plan = usePlanFor(op.id)
+  const objective = useStore(s => s.objective)
   const notes: string[] = []
   if (data) notes.push(t('noticeNewerData', { build: data.build }))
   if (op.finished) notes.push(t('noticeFinished'))
@@ -82,6 +85,7 @@ function Notices({ op }: { op: Operation }) {
     if (issue.kind === 'kills') notes.push(t('noticeKills', { n: issue.stage + 1, server: issue.server, local: issue.local }))
     else notes.push(t('noticeGoal', { n: issue.stage + 1, type: issue.type }))
   }
+  if (lacksModifiers(op, plan, objective)) notes.push(t('noticeNoModifiers'))
   if (!notes.length) return null
   return (
     <ul className={css.notices}>
@@ -104,6 +108,7 @@ function Battle({ op }: { op: Operation }) {
         <div className={css.center}>
           <StageStrip op={op} selected={selected} />
           <Notices op={op} />
+          <AutoBar op={op} />
           {ctx && <KeypointSheet ctx={ctx} />}
         </div>
         <div className={css.right}>{ctx && <Crt ctx={ctx} />}</div>

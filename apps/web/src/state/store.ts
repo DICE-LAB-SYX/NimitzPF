@@ -18,6 +18,7 @@ interface PersistedState {
   readonly rewardWeights: RewardWeights
   readonly intel: readonly IntelRecord[]
   readonly overrides: Readonly<Record<string, Overrides>>
+  readonly autoplay: boolean
 }
 
 interface TransientState {
@@ -35,6 +36,7 @@ interface Actions {
   learn(records: readonly IntelRecord[]): void
   clearIntel(): void
   setRewardWeight(kind: RewardKind, weight: number): void
+  setAutoplay(on: boolean): void
 }
 
 type AppState = PersistedState & TransientState & Actions
@@ -75,6 +77,7 @@ export const useStore = create<AppState>()(
         rewardWeights: DEFAULT_REWARD_WEIGHTS,
         intel: [],
         overrides: {},
+        autoplay: false,
         selection: { operation: null, keypoint: null, lane: null },
         revision: 0,
 
@@ -96,14 +99,16 @@ export const useStore = create<AppState>()(
         clearIntel: () => bump({ intel: [] }),
         setRewardWeight: (kind, weight) =>
           bump({ rewardWeights: { ...get().rewardWeights, [kind]: Math.max(0, Math.min(10, Math.round(weight * 10) / 10)) } }),
+        setAutoplay: on => set({ autoplay: on }),
       }
     },
     {
       name: 'nimitzpf',
-      version: 7,
+      version: 8,
       migrate: (persisted, version) => {
         const raw = (persisted ?? {}) as Partial<PersistedState>
-        if (version >= 7) return raw as never
+        if (version >= 8) return raw as never
+        if (version === 7) return { ...raw, autoplay: false } as never
         return {
           ...(raw.locale && { locale: raw.locale, localeAuto: false }),
           ...(raw.objective && { objective: raw.objective }),
@@ -119,6 +124,7 @@ export const useStore = create<AppState>()(
         rewardWeights: s.rewardWeights,
         intel: s.intel,
         overrides: s.overrides,
+        autoplay: s.autoplay,
       }),
     },
   ),

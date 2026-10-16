@@ -14,6 +14,7 @@ import {
   type Condition,
   type KeypointInput,
   type ModifierId,
+  type Objective,
   type PlanResult,
   type PlannedKeypoint,
   type Restrictions,
@@ -298,6 +299,12 @@ export function modifierLedger(
     return [id, { stock: total, assigned, left, over: Math.max(0, held - total), usable, reserved: usable && left === 0 }]
   })
   return Object.fromEntries(entries) as Record<ModifierId, LedgerEntry>
+}
+
+export function lacksModifiers(op: Operation, plan: PlanResult | null, objective: Objective): boolean {
+  if (op.finished || !plan) return false
+  if (MODIFIERS.some(m => m.type === 1 && (op.state.inventory[m.id] ?? 0) > 0)) return false
+  return (objective === 'perfect' ? plan.perfectProbability : plan.completeProbability) < 1
 }
 
 export function recordPlacements(kp: KeypointInput): PlacementDraft[] | null {

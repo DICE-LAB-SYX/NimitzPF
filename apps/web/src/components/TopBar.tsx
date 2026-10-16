@@ -6,6 +6,7 @@ import { embedded, send } from '../live/channel.ts'
 import { defaultOperation, useLive, useOperations, type Connection } from '../live/store.ts'
 import { useStore } from '../state/store.ts'
 import { Button, cx, Dialog, Segmented, Stars } from '../ui/primitives.tsx'
+import { AutoToggle } from './AutoPlay.tsx'
 import { RewardWeights } from './RewardWeights.tsx'
 import css from './TopBar.module.css'
 
@@ -120,6 +121,7 @@ export function TopBar() {
             {t('rewardWeights')}
           </button>
         )}
+        <AutoToggle />
         <Segmented size="sm" label={t('language')} value={locale} onChange={l => setLocale(l)} options={LOCALES.map(l => ({ value: l, label: LOCALE_LABEL[l] }))} />
       </div>
 

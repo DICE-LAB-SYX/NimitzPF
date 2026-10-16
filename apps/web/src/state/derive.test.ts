@@ -7,6 +7,7 @@ import {
   canAttach,
   conditionViews,
   effectivePercentLabel,
+  lacksModifiers,
   laneRule,
   modifierLedger,
   modifierRule,
@@ -339,5 +340,22 @@ describe('conditions on the swept path', () => {
 
   it('has nothing to lift when the plan skips the source', () => {
     expect(sweptConditions(lift(false), plan({ a: [empty, empty, empty, empty] }), 't')).toBeNull()
+  })
+})
+
+describe('the empty modifier stock notice', () => {
+  const odds = (complete: number, perfect: number) => ({ completeProbability: complete, perfectProbability: perfect }) as PlanResult
+
+  it('shows when no standard modifier is left and the objective is not certain', () => {
+    expect(lacksModifiers(op(), odds(0.8, 0.2), 'complete')).toBe(true)
+    expect(lacksModifiers(op({ 'sea-dog': 3 }), odds(1, 0.2), 'perfect')).toBe(true)
+  })
+
+  it('stays quiet with standard stock, a certain plan, no plan or a finished operation', () => {
+    expect(lacksModifiers(op({ teamwork: 1 }), odds(0.8, 0.2), 'complete')).toBe(false)
+    expect(lacksModifiers(op(), odds(1, 0.2), 'complete')).toBe(false)
+    expect(lacksModifiers(op(), odds(1, 1), 'perfect')).toBe(false)
+    expect(lacksModifiers(op(), null, 'complete')).toBe(false)
+    expect(lacksModifiers({ ...op(), finished: true }, odds(0.8, 0.2), 'complete')).toBe(false)
   })
 })

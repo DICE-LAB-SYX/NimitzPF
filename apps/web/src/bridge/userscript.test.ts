@@ -57,7 +57,7 @@ describe('userscript', () => {
     const page = run(userscript({ base: PAGES_BASE, bridge: 'bridge.js' }), 'https://pacificfront.worldofwarships.asia/zh-sg/operations')
     expect(page.head).toHaveLength(1)
     expect(page.head[0]!.type).toBe('module')
-    expect(page.head[0]!.src).toMatch(/^https:\/\/dice-lab-syx\.github\.io\/NimitzPF\/bridge\.js\?v=\d+$/)
+    expect(page.head[0]!.src).toMatch(/^https:\/\/dice-lab-syx\.github\.io\/NimitzPF\/bridge\.js\?loader=2&v=\d+$/)
     page.again()
     expect(page.head).toHaveLength(1)
   })

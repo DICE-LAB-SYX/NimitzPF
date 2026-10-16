@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { USERSCRIPT_EVENT, USERSCRIPT_FILE } from '../bridge/userscript.ts'
+import { LOADER } from '../bridge/protocol.ts'
+import { USERSCRIPT_EVENT, USERSCRIPT_FILE, USERSCRIPT_VERSION } from '../bridge/userscript.ts'
 import { LOCALE_LABEL, LOCALES } from '../i18n/index.ts'
 import type { UiKey } from '../i18n/ui.ts'
 import { useT } from '../i18n/useT.ts'
@@ -30,7 +31,17 @@ export function bridgeUrl(): string {
 }
 
 export function bookmarklet(url: string): string {
-  return `javascript:(()=>{const s=document.createElement('script');s.type='module';s.src=${JSON.stringify(url)}+'?v='+Date.now();document.head.append(s)})()`
+  return `javascript:(()=>{const s=document.createElement('script');s.type='module';s.src=${JSON.stringify(url)}+'?loader=${LOADER}&v='+Date.now();document.head.append(s)})()`
+}
+
+function olderThan(version: string, latest: string): boolean {
+  const a = version.split('.').map(Number)
+  const b = latest.split('.').map(Number)
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const d = (a[i] || 0) - (b[i] || 0)
+    if (d !== 0) return d < 0
+  }
+  return false
 }
 
 function detectBrowser(): Browser {
@@ -91,6 +102,7 @@ function Realms() {
 function ScriptSteps() {
   const t = useT()
   const version = useUserscript()
+  const outdated = version !== null && olderThan(version, USERSCRIPT_VERSION)
   const [browser] = useState(detectBrowser)
   return (
     <ol className={css.steps}>
@@ -122,8 +134,12 @@ function ScriptSteps() {
             {t('landingScriptInstall')}
           </a>
         </div>
-        <p className={cx(css.status, version && css.statusOn)} role="status">
-          {version ? `✓ ${t('landingScriptFound', { version })}` : t('landingScriptMissing')}
+        <p className={cx(css.status, version && !outdated && css.statusOn)} role="status">
+          {!version
+            ? t('landingScriptMissing')
+            : outdated
+              ? t('landingScriptOutdated', { version, latest: USERSCRIPT_VERSION })
+              : `✓ ${t('landingScriptFound', { version })}`}
         </p>
       </Step>
       <Step n={4} title={t('landingScript4')}>
@@ -195,12 +211,36 @@ function BookmarkSteps() {
   )
 }
 
+const TIPS: readonly (readonly [UiKey, UiKey])[] = [
+  ['landingTipModifiers', 'landingTipModifiersHint'],
+  ['landingTipUnits', 'landingTipUnitsHint'],
+  ['landingTipManual', 'landingTipManualHint'],
+]
+
+function Tips() {
+  const t = useT()
+  return (
+    <section className={css.tips}>
+      <h2>{t('landingTipsTitle')}</h2>
+      <ul>
+        {TIPS.map(([title, hint]) => (
+          <li key={title}>
+            <b>{t(title)}</b>
+            <p>{t(hint)}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 function Help() {
   const t = useT()
   const items: readonly { q: string; a: readonly string[] }[] = [
     { q: t('landingHelpNothing'), a: [t('landingHelpNothingScript'), t('landingHelpNothingBookmark')] },
     { q: t('landingHelpTab'), a: [t('landingHelpTabHint')] },
     { q: t('landingHelpLogin', { status: t('statusUnauth') }), a: [t('landingHelpLoginHint')] },
+    { q: t('landingHelpAuto'), a: [t('landingHelpAutoHint')] },
     { q: t('landingHelpFailed'), a: [t('landingHelpFailedHint')] },
     { q: t('landingHelpClient'), a: [t('landingHelpClientHint')] },
   ]
@@ -281,6 +321,8 @@ export function Landing() {
           </div>
         </section>
 
+        <Tips />
+
         <Help />
 
         <section className={css.notes}>
@@ -288,6 +330,7 @@ export function Landing() {
           <ul>
             <li>{t('landingNoteDesktop')}</li>
             <li>{t('landingNoteReadOnly')}</li>
+            <li>{t('landingNoteAuto')}</li>
             <li>{t('landingNotePrivacy')}</li>
             <li>{t('landingNoteExact')}</li>
           </ul>

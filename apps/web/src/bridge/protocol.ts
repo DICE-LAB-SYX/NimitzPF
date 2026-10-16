@@ -1,7 +1,8 @@
 import type { BuffDirection, DebuffDirection, SpecIndex, UnitType, VulnCode } from '@nimitzpf/core'
 import type { ApiEffectPayload, ApiInventory, ApiOperation, ApiSpecs, ApiState } from '../live/api.ts'
 
-export const PROTOCOL = 1
+export const PROTOCOL = 2
+export const LOADER = 2
 export const CHANNEL = 'nimitzpf'
 
 export const GAME_HOSTS = ['pacificfront.worldofwarships.asia', 'pacificfront.worldofwarships.eu', 'pacificfront.worldofwarships.com', 'oceanfront.wowsgame.cn'] as const
@@ -61,17 +62,47 @@ export interface VerifyBoard {
   readonly effects: readonly ApiEffectPayload[]
 }
 
+export interface PlaySlot {
+  readonly cardCode: string
+  readonly modifiers?: readonly string[]
+}
+
+export type PlayRequest =
+  | { readonly kind: 'battle'; readonly operationId: string; readonly keypointId: string; readonly slots: readonly (PlaySlot | null)[] }
+  | { readonly kind: 'advance'; readonly operationId: string; readonly stageId: string }
+
+export type PlayError = 'loader' | 'busy' | 'invalid' | 'stale' | 'ui' | 'rejected' | 'aborted' | 'timeout'
+
+export type DriveStep = 'open' | 'card' | 'modifier' | 'battle' | 'result' | 'stage' | 'aborted'
+
+export interface PlayResult {
+  readonly ok: boolean
+  readonly error: PlayError | null
+  readonly step: DriveStep | null
+  readonly detail: string | null
+}
+
 export type BridgeMessage =
-  | { readonly type: 'hello'; readonly protocol: number; readonly host: string; readonly realm: string | null; readonly engine: string | null }
+  | {
+      readonly type: 'hello'
+      readonly protocol: number
+      readonly loader: number
+      readonly host: string
+      readonly realm: string | null
+      readonly engine: string | null
+    }
   | { readonly type: 'snapshot'; readonly snapshot: Snapshot }
   | { readonly type: 'syncing'; readonly syncing: boolean }
   | ({ readonly type: 'verdict'; readonly id: number } & Verdict)
+  | ({ readonly type: 'played'; readonly id: number } & PlayResult)
   | { readonly type: 'layout'; readonly collapsed: boolean; readonly push: boolean }
 
 export type PanelMessage =
   | { readonly type: 'ready' }
   | { readonly type: 'refresh' }
   | { readonly type: 'verify'; readonly id: number; readonly board: VerifyBoard }
+  | { readonly type: 'play'; readonly id: number; readonly request: PlayRequest }
+  | { readonly type: 'halt' }
   | { readonly type: 'layout'; readonly collapsed?: boolean; readonly push?: boolean }
 
 export interface Envelope<T> {
@@ -87,6 +118,14 @@ export function opened<T>(data: unknown): T | null {
   if (!data || typeof data !== 'object') return null
   const e = data as Partial<Envelope<T>>
   return e.channel === CHANNEL && e.message && typeof e.message === 'object' ? e.message : null
+}
+
+export function loaderOf(url: string): number {
+  try {
+    return Number(new URL(url).searchParams.get('loader')) || 1
+  } catch {
+    return 1
+  }
 }
 
 export function parseRoute(pathname: string, search: string): Route {
