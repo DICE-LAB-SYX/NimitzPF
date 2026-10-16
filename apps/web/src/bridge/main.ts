@@ -163,6 +163,7 @@ function mount(): void {
     now: () => Date.now(),
   })
   const loader = loaderOf(import.meta.url)
+  const script = document.documentElement.dataset.nimitzpfLoader ?? null
   const driver = new Driver({
     halted: () => player.halted(),
     ownTarget: event => event.composedPath().includes(host),
@@ -182,7 +183,7 @@ function mount(): void {
     if (!message) return
     switch (message.type) {
       case 'ready':
-        post({ type: 'hello', protocol: PROTOCOL, loader, host: window.location.host, realm: pageInfo().realm, engine: page.adeck?.version ?? null })
+        post({ type: 'hello', protocol: PROTOCOL, loader, script, host: window.location.host, realm: pageInfo().realm, engine: page.adeck?.version ?? null })
         post({ type: 'layout', collapsed: layout.collapsed, push: layout.push })
         post({ type: 'snapshot', snapshot: sync.snapshot() })
         break

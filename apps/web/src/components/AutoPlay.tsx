@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import type { DriveStep } from '../bridge/protocol.ts'
+import { LOADER, type DriveStep } from '../bridge/protocol.ts'
+import { USERSCRIPT_FILE } from '../bridge/userscript.ts'
 import type { Params } from '../i18n/index.ts'
 import type { UiKey } from '../i18n/ui.ts'
 import { useT } from '../i18n/useT.ts'
@@ -46,6 +47,15 @@ function useReadiness(): Readiness {
   return readiness(connection, bridge)
 }
 
+function useReadinessText(): (ready: Exclude<Readiness, 'ready'>) => string {
+  const t = useT()
+  const script = useLive(s => s.bridge?.script)
+  return ready => {
+    if (ready !== 'old-loader' || script === undefined) return t(READINESS_NOTE[ready])
+    return script ? t('updateScript', { version: script }) : t('updateBookmark')
+  }
+}
+
 function useNow(active: boolean): number {
   const [, tick] = useState(0)
   useEffect(() => {
@@ -76,23 +86,54 @@ function useNames(op: Operation | null) {
   return { of, params }
 }
 
+function scriptUrl(): string {
+  return new URL(USERSCRIPT_FILE, new URL('./', window.location.href)).href
+}
+
 function Reinstall() {
   const t = useT()
+  const script = useLive(s => s.bridge?.script)
   return (
     <span className={css.links}>
-      <a href={installUrl('')} target="_blank" rel="noreferrer">
-        {t('autoReinstallScript')}
-      </a>
-      <a href={installUrl('bookmark')} target="_blank" rel="noreferrer">
-        {t('autoReinstallBookmark')}
-      </a>
+      {script !== null && (
+        <a href={script ? scriptUrl() : installUrl('')} target="_blank" rel="noreferrer">
+          {t(script ? 'updateNow' : 'autoReinstallScript')}
+        </a>
+      )}
+      {!script && (
+        <a href={installUrl('bookmark')} target="_blank" rel="noreferrer">
+          {t('autoReinstallBookmark')}
+        </a>
+      )}
     </span>
+  )
+}
+
+export function UpdateHint() {
+  const t = useT()
+  const on = useStore(s => s.autoplay)
+  const dismissed = useStore(s => s.updateDismissed)
+  const dismiss = useStore(s => s.dismissUpdate)
+  const ready = useReadiness()
+  const readyText = useReadinessText()
+  if (on || ready !== 'old-loader' || dismissed >= LOADER) return null
+  return (
+    <div className={css.update} role="status">
+      <p>
+        {readyText(ready)}
+        <Reinstall />
+      </p>
+      <button type="button" className={css.close} onClick={() => dismiss(LOADER)} aria-label={t('close')} title={t('close')}>
+        <Icon name="close" size={14} />
+      </button>
+    </div>
   )
 }
 
 function Consent({ onAccept, onClose }: { onAccept: () => void; onClose: () => void }) {
   const t = useT()
   const ready = useReadiness()
+  const readyText = useReadinessText()
   return (
     <Dialog
       open
@@ -114,7 +155,7 @@ function Consent({ onAccept, onClose }: { onAccept: () => void; onClose: () => v
         <p className={css.risk}>{t('autoConsentRisk')}</p>
         {ready === 'old-loader' || ready === 'old-bridge' ? (
           <p className={css.warn}>
-            {t(READINESS_NOTE[ready])}
+            {readyText(ready)}
             {ready === 'old-loader' && <Reinstall />}
           </p>
         ) : null}
@@ -164,6 +205,7 @@ export function AutoBar({ op }: { op: Operation }) {
   const now = useNow(auto.phase === 'countdown')
   const names = useNames(op)
   const run = runPlan(snapshot, op)
+  const readyText = useReadinessText()
   if (!on) return null
 
   const note = auto.note
@@ -173,7 +215,7 @@ export function AutoBar({ op }: { op: Operation }) {
   let sub: string | null = null
   let tone: AutoNote['tone'] | null = null
   if (ready !== 'ready') {
-    main = t(READINESS_NOTE[ready])
+    main = readyText(ready)
     tone = ready === 'old-loader' || ready === 'old-bridge' ? 'error' : 'info'
   } else if (auto.running || auto.phase === 'playing') {
     const params = { s: Math.max(1, Math.ceil(((auto.deadline ?? now) - now) / 1000)), name, n: auto.stage ?? 0 }
@@ -227,10 +269,11 @@ export function PlayButton({ ctx }: { ctx: KeypointContext }) {
   const running = useAuto(s => s.running)
   const target = useAuto(s => s.target)
   const names = useNames(ctx.op)
+  const readyText = useReadinessText()
   const { op, kp, meta, stage, placements } = ctx
   if (!on || meta.raw !== 'revealed' || stage !== op.state.currentStage || op.finished) return null
   const problem = lineupProblem(op, snapshot, kp.id, placements)
-  const blocked = ready !== 'ready' ? t(READINESS_NOTE[ready]) : problem ? t(PROBLEM_NOTE[problem], { name: names.of(kp.id) }) : null
+  const blocked = ready !== 'ready' ? readyText(ready) : problem ? t(PROBLEM_NOTE[problem], { name: names.of(kp.id) }) : null
   const mine = phase === 'playing' && target === kp.id
   return (
     <Button

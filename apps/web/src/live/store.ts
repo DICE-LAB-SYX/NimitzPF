@@ -13,6 +13,7 @@ export type Connection = 'waiting' | 'live' | 'unauth' | 'no-season' | 'offline'
 export interface BridgeInfo {
   readonly protocol: number
   readonly loader: number
+  readonly script?: string | null
 }
 
 interface LiveState {
@@ -152,7 +153,10 @@ export function receiveSnapshot(snapshot: Snapshot, connection?: Connection): vo
 export function receive(message: BridgeMessage): void {
   switch (message.type) {
     case 'hello':
-      useLive.setState({ engine: message.engine, bridge: { protocol: message.protocol, loader: message.loader ?? 1 } })
+      useLive.setState({
+        engine: message.engine,
+        bridge: { protocol: message.protocol, loader: message.loader ?? 1, ...(message.script !== undefined && { script: message.script }) },
+      })
       break
     case 'snapshot':
       receiveSnapshot(message.snapshot)

@@ -87,6 +87,7 @@ export type BridgeMessage =
       readonly type: 'hello'
       readonly protocol: number
       readonly loader: number
+      readonly script?: string | null
       readonly host: string
       readonly realm: string | null
       readonly engine: string | null

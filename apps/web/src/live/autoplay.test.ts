@@ -137,6 +137,16 @@ describe('readiness', () => {
     expect(auto.readiness('live', { protocol: 1, loader: 1 })).toBe('old-bridge')
     expect(auto.readiness('live', { protocol: 2, loader: 1 })).toBe('old-loader')
   })
+
+  it('remembers whether an old copy is the userscript or a bookmark', () => {
+    const hello = { type: 'hello', protocol: 2, loader: 1, host: 'h', realm: 'sg', engine: null } as const
+    live.receive({ ...hello, script: '1.2.0' })
+    expect(live.useLive.getState().bridge).toEqual({ protocol: 2, loader: 1, script: '1.2.0' })
+    live.receive({ ...hello, script: null })
+    expect(live.useLive.getState().bridge).toEqual({ protocol: 2, loader: 1, script: null })
+    live.receive(hello)
+    expect(live.useLive.getState().bridge).toEqual({ protocol: 2, loader: 1 })
+  })
 })
 
 describe('lineups', () => {

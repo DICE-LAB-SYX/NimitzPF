@@ -40,21 +40,27 @@ describe('persisted state migration', () => {
     expect(state).toMatchObject({ locale: 'en', localeAuto: false, objective: 'perfect', intel: [], overrides: {} })
     expect(state.rewardWeights).toEqual({ supplies: 2, progress: 1, modifier: 1, card: 1, other: 1 })
     expect(state).not.toHaveProperty('operations')
-    expect(JSON.parse(saved.get('nimitzpf')!).version).toBe(8)
+    expect(JSON.parse(saved.get('nimitzpf')!).version).toBe(9)
   })
 
   it('leaves current data untouched', async () => {
     const overrides = { o1: { k1: [{ card: 'card_1', standard: null, special: null }] } }
-    const state = await load({ locale: 'zh-Hant', localeAuto: false, objective: 'reward', intel: [record('vehicle_7', [50, 50, 50])], overrides, autoplay: true }, 8)
-    expect(state).toMatchObject({ locale: 'zh-Hant', objective: 'reward', overrides, autoplay: true })
+    const state = await load({ locale: 'zh-Hant', localeAuto: false, objective: 'reward', intel: [record('vehicle_7', [50, 50, 50])], overrides, autoplay: true, updateDismissed: 2 }, 9)
+    expect(state).toMatchObject({ locale: 'zh-Hant', objective: 'reward', overrides, autoplay: true, updateDismissed: 2 })
     expect(state.intel).toHaveLength(1)
+  })
+
+  it('shows the update hint again to version 8', async () => {
+    const state = await load({ locale: 'en', localeAuto: false, objective: 'complete', intel: [], overrides: {}, autoplay: true }, 8)
+    expect(state).toMatchObject({ locale: 'en', autoplay: true, updateDismissed: 0 })
+    expect(JSON.parse(saved.get('nimitzpf')!).version).toBe(9)
   })
 
   it('starts version 7 with auto play switched off', async () => {
     const overrides = { o1: { k1: [{ card: 'card_1', standard: null, special: null }] } }
     const state = await load({ locale: 'en', localeAuto: false, objective: 'complete', intel: [], overrides }, 7)
-    expect(state).toMatchObject({ locale: 'en', overrides, autoplay: false })
-    expect(JSON.parse(saved.get('nimitzpf')!).version).toBe(8)
+    expect(state).toMatchObject({ locale: 'en', overrides, autoplay: false, updateDismissed: 0 })
+    expect(JSON.parse(saved.get('nimitzpf')!).version).toBe(9)
   })
 })
 

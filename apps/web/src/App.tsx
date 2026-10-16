@@ -1,7 +1,7 @@
 import { DATA_BUILD } from '@nimitzpf/core'
 import { useEffect } from 'react'
 import css from './App.module.css'
-import { AutoBar } from './components/AutoPlay.tsx'
+import { AutoBar, UpdateHint } from './components/AutoPlay.tsx'
 import { Crt } from './components/Crt.tsx'
 import { Dock } from './components/Dock.tsx'
 import { KeypointSheet, useKeypointContext } from './components/KeypointSheet.tsx'
@@ -108,6 +108,7 @@ function Battle({ op }: { op: Operation }) {
         <div className={css.center}>
           <StageStrip op={op} selected={selected} />
           <Notices op={op} />
+          <UpdateHint />
           <AutoBar op={op} />
           {ctx && <KeypointSheet ctx={ctx} />}
         </div>
