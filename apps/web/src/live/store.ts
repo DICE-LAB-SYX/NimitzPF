@@ -191,6 +191,10 @@ export function currentOperation(): Operation | null {
   return op ? { ...op, overrides: prefs.overrides[op.id] ?? {} } : null
 }
 
+export function useRealm(): string | null {
+  return useLive(s => s.snapshot?.realm ?? null)
+}
+
 export function useOperations(): ReadonlyMap<string, LiveOperation> {
   const snapshot = useLive(s => s.snapshot)
   const data = useLive(s => s.data)

@@ -16,6 +16,7 @@ const REALMS: readonly { key: UiKey; url: string }[] = [
   { key: 'landingRealmAsia', url: 'https://pacificfront.worldofwarships.asia/zh-sg/operations' },
   { key: 'landingRealmEu', url: 'https://pacificfront.worldofwarships.eu/en/operations' },
   { key: 'landingRealmNa', url: 'https://pacificfront.worldofwarships.com/en/operations' },
+  { key: 'landingRealmCn', url: 'https://oceanfront.wowsgame.cn/zh-cn/operations' },
 ]
 
 const STORES: readonly { browser: Browser; key: UiKey; url: string }[] = [

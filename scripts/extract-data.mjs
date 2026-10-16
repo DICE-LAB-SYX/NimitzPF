@@ -6,13 +6,15 @@ import { fromSettings } from '../packages/core/src/settings.ts'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const realmArg = process.argv.find(a => a.startsWith('--realm='))
 const realm = realmArg ? realmArg.slice('--realm='.length) : 'asia'
-const origin = `https://pacificfront.worldofwarships.${realm}`
+const sites = { cn: { origin: 'https://oceanfront.wowsgame.cn', vortex: 'https://vortex.wowsgame.cn' } }
+const { origin, vortex } = sites[realm] ?? { origin: `https://pacificfront.worldofwarships.${realm}`, vortex: `https://vortex.worldofwarships.${realm}` }
 const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
 
-const localeSources = { 'zh-Hans': 'zh-sg', 'zh-Hant': 'zh-tw', en: 'en' }
+const localeSources = { 'zh-Hans': 'zh-sg', 'zh-Hans-CN': 'zh-cn', 'zh-Hant': 'zh-tw', en: 'en' }
 
 const coreOut = path.join(root, 'packages/core/src/data')
 const webOut = path.join(root, 'apps/web/src/i18n/game')
+const cnArtOut = path.join(root, 'apps/web/src/game/cn-art.json')
 
 async function get(url) {
   const res = await fetch(url, { headers: { 'user-agent': userAgent } })
@@ -169,18 +171,22 @@ function objectLiterals(text, firstKey) {
 }
 
 const wanted = new Map()
+const cnArt = { cards: new Set(), enemies: new Set() }
 let unitArtFound = false
 let typeIconsFound = false
 for (const text of chunkText.values()) {
   const idents = assetIdents(text)
   if (!idents.size) continue
   for (const literal of objectLiterals(text, 'card_1')) {
-    if (!('boss_1' in literal)) continue
     if (!Object.values(literal).every(v => idents.has(v))) continue
+    const cn = Object.values(literal).every(v => /_cn-[\w-]{8}\.webp$/.test(idents.get(v)))
+    if (!cn && !('boss_1' in literal)) continue
     for (const [code, ident] of Object.entries(literal)) {
-      wanted.set(`${code.startsWith('card_') ? 'cards' : 'enemies'}/${code}.webp`, idents.get(ident))
+      const dir = code.startsWith('card_') ? 'cards' : 'enemies'
+      wanted.set(`${cn ? 'cn/' : ''}${dir}/${code}.webp`, idents.get(ident))
+      if (cn) cnArt[dir].add(code)
     }
-    unitArtFound = true
+    if (!cn) unitArtFound = true
   }
   for (const literal of objectLiterals(text, 'aircraft')) {
     if (!('naval_mine' in literal) || !Object.values(literal).every(v => idents.has(v))) continue
@@ -190,6 +196,7 @@ for (const text of chunkText.values()) {
 }
 if (!unitArtFound) throw new Error('unit art map not found')
 if (!typeIconsFound) throw new Error('unit type icon map not found')
+if (!cnArt.cards.size && !cnArt.enemies.size) throw new Error('cn unit art map not found')
 
 const kebab = s => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()
 for (const m of collection.modifiers) {
@@ -233,7 +240,7 @@ for (const level of [1, 2, 3]) {
 }
 for (const [target, source] of Object.entries(statics)) wanted.set(target, source)
 
-const glossary = await fetch(`https://vortex.worldofwarships.${realm}/api/graphql/glossary/`, {
+const glossary = await fetch(`${vortex}/api/graphql/glossary/`, {
   method: 'POST',
   headers: { 'content-type': 'application/json', 'user-agent': userAgent },
   body: JSON.stringify({ query: 'query { currencies { name icons { large } } }' }),
@@ -260,3 +267,4 @@ for (const [target, url] of downloads) {
   saved++
 }
 console.log('assets', saved)
+writeJson(cnArtOut, { cards: [...cnArt.cards].sort(), enemies: [...cnArt.enemies].sort() })

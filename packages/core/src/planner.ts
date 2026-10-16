@@ -219,6 +219,7 @@ export class Planner {
   readonly enemyTotal: number
   readonly rewardTotal: number
   readonly plannedEnemyLanes: number
+  readonly sweepable: boolean
   private readonly cardIndex: ReadonlyMap<string, number>
   private readonly fixedKillsOutsidePlan: number
   private readonly fixedRewardOutsidePlan: number
@@ -426,6 +427,12 @@ export class Planner {
     this.fixedKillsOutsidePlan = fixedKillsOutsidePlan
     this.fixedRewardOutsidePlan = fixedRewardOutsidePlan
     this.perfectAlreadyBroken = perfectAlreadyBroken
+    this.sweepable =
+      !this.perfectBrokenBefore() &&
+      stages.every(st => {
+        const lanes = st.keypoints.reduce((n, k) => n + keypoints[k]!.enemies.filter(Boolean).length, 0)
+        return lanes <= startHp.filter((hp, c) => hp > 0 && !st.usedCards.has(c)).length
+      })
   }
 
   private relaxPins(): void {
@@ -510,6 +517,10 @@ export class Planner {
 
   fixedReward(): number {
     return this.fixedRewardOutsidePlan
+  }
+
+  fixedKills(): number {
+    return this.fixedKillsOutsidePlan
   }
 
   isPinned(gene: number): boolean {
@@ -922,7 +933,8 @@ export class Planner {
     let score: number
     const progress = this.stages.length === 0 ? 0 : expectedStages / this.stages.length
     if (this.scoreObjective === 'complete') score = logComplete + 0.1 * progress + 0.03 * shape + 0.01 * killShare + economy
-    else if (this.scoreObjective === 'perfect') score = logPerfect + 0.2 * logComplete + economy
+    else if (this.scoreObjective === 'perfect' && this.sweepable) score = logPerfect + 0.2 * logComplete + economy
+    else if (this.scoreObjective === 'perfect') score = killShare + 0.05 * complete + 0.01 * shape + economy
     else score = rewardShare + 0.05 * complete + 0.01 * shape + economy
 
     return {
@@ -960,7 +972,7 @@ export class Planner {
   laneValue(p: number, gene: number): number {
     const kp = this.keypoints[Math.floor(gene / this.size)]!
     const lane = gene % this.size
-    if (this.objective === 'perfect' || (this.objective === 'complete' && kp.flagships[lane])) return Math.log(Math.max(p, 1e-300))
+    if ((this.objective === 'perfect' && this.sweepable) || (this.objective === 'complete' && kp.flagships[lane])) return Math.log(Math.max(p, 1e-300))
     if (this.objective === 'reward') return p * (kp.rewards[lane]! || 1)
     return p
   }
@@ -1440,7 +1452,7 @@ function shortfall(metrics: readonly number[], floor: readonly number[]): number
 function measure(planner: Planner, genes: Int32Array): Measure {
   const hard = planner.evaluate(genes, false)
   return {
-    metrics: primaryMetrics(planner.objective, hard.complete, hard.perfect, hard.expectedReward, hard.expectedStages),
+    metrics: primaryMetrics(planner.objective, hard.complete, hard.perfect, hard.expectedReward, hard.expectedStages, hard.expectedKills),
     kills: hard.expectedKills,
   }
 }
@@ -2236,7 +2248,7 @@ function placementsOf(planner: Planner, genes: Int32Array): Record<string, Pinne
 
 function exactMetrics(planner: Planner, genes: Int32Array): number[] {
   const ev = planner.evaluate(genes, false, undefined, true)
-  return primaryMetrics(planner.objective, ev.complete, ev.perfect, ev.expectedReward, ev.expectedStages)
+  return primaryMetrics(planner.objective, ev.complete, ev.perfect, ev.expectedReward, ev.expectedStages, ev.expectedKills)
 }
 
 function cardsOnly(planner: Planner, genes: Int32Array): Int32Array {
@@ -2451,7 +2463,7 @@ export function economize(state: OperationState, options: ThriftOptions): PlanRe
 }
 
 function planMetrics(plan: PlanResult): number[] {
-  return primaryMetrics(plan.objective, plan.completeProbability, plan.perfectProbability, plan.expectedReward, plan.expectedStages)
+  return primaryMetrics(plan.objective, plan.completeProbability, plan.perfectProbability, plan.expectedReward, plan.expectedStages, plan.expectedKills)
 }
 
 function planStanding(plan: PlanResult, floor: readonly number[]): Standing {

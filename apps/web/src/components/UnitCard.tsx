@@ -17,6 +17,7 @@ import {
 import type { CSSProperties } from 'react'
 import { asset } from '../game/assets.ts'
 import { useT } from '../i18n/useT.ts'
+import { useRealm } from '../live/store.ts'
 import { enemyPower, handSpecs, vulnCodes, type RewardDraft } from '../state/model.ts'
 import { cx, HpBar } from '../ui/primitives.tsx'
 import { RewardBadge } from './RewardBadge.tsx'
@@ -123,6 +124,7 @@ export function AllyCard({
   stamp?: string | null
 }) {
   const t = useT()
+  const realm = useRealm()
   const name = t.cardName(card.code)
   const specs = result ? result.specs : handSpecs(card, hp)
   const silenced = special === 'focused'
@@ -161,7 +163,7 @@ export function AllyCard({
             {Math.round(high)}
           </span>
         </div>
-        <img className={css.art} src={asset.card(card.code)} alt="" draggable={false} />
+        <img className={css.art} src={asset.card(card.code, realm)} alt="" draggable={false} />
         {inlineModifiers && (standard || special) && (
           <div className={css.inlineMods}>
             {[standard, special].map(m => (m ? <img key={m} src={asset.modifier(m)} alt={t.modifier(m)} /> : null))}
@@ -209,6 +211,7 @@ export function EnemyCard({
   survived?: boolean
 }) {
   const t = useT()
+  const realm = useRealm()
   const boss = isFlagship(enemy)
   const power = enemyPower(enemy)
   const finalPower = result ? result.power : power
@@ -241,7 +244,7 @@ export function EnemyCard({
             {delta !== 0 && <small>{delta > 0 ? `+${delta}` : delta}</small>}
           </span>
         </div>
-        <img className={css.art} src={asset.enemy(enemy.code)} alt="" draggable={false} />
+        <img className={css.art} src={asset.enemy(enemy.code, realm)} alt="" draggable={false} />
         <div className={css.nameplate}>
           <img src={asset.type(enemy.type)} alt={t.unitType(enemy.type)} />
           <span>{t.enemyName(enemy.code)}</span>

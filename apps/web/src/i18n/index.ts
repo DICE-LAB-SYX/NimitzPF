@@ -1,5 +1,7 @@
 import type { ConditionKind, ModifierId, SpecIndex, UnitType, VulnCode } from '@nimitzpf/core'
+import { CN_REALM } from '../bridge/protocol.ts'
 import en from './game/en.json' with { type: 'json' }
+import zhHansCN from './game/zh-Hans-CN.json' with { type: 'json' }
 import zhHans from './game/zh-Hans.json' with { type: 'json' }
 import zhHant from './game/zh-Hant.json' with { type: 'json' }
 import { UI, type UiKey } from './ui.ts'
@@ -8,7 +10,9 @@ export type Locale = 'zh-Hans' | 'zh-Hant' | 'en'
 export const LOCALES: readonly Locale[] = ['zh-Hans', 'zh-Hant', 'en']
 export const LOCALE_LABEL: Readonly<Record<Locale, string>> = { 'zh-Hans': '简', 'zh-Hant': '繁', en: 'EN' }
 
-const GAME: Readonly<Record<Locale, Readonly<Record<string, string>>>> = { 'zh-Hans': zhHans, 'zh-Hant': zhHant, en }
+type Variant = Locale | 'zh-Hans-CN'
+
+const GAME: Readonly<Record<Variant, Readonly<Record<string, string>>>> = { 'zh-Hans': zhHans, 'zh-Hans-CN': zhHansCN, 'zh-Hant': zhHant, en }
 
 export type Params = Readonly<Record<string, string | number>>
 
@@ -39,9 +43,10 @@ const CONDITION_KEY: Readonly<Record<ConditionKind, string>> = {
   'restrictions': 'IDS_APPLIED_EFFECTS_CATEGORY_RESTRICTED_CLASSES',
 }
 
-export function createTranslator(locale: Locale): Translator {
-  const ui = UI[locale]
-  const game = GAME[locale]
+export function createTranslator(locale: Locale, realm: string | null = null): Translator {
+  const variant: Variant = locale === 'zh-Hans' && realm === CN_REALM ? 'zh-Hans-CN' : locale
+  const ui = UI[variant]
+  const game = GAME[variant]
   const fallback = GAME.en
   const g = (key: string) => game[key] ?? fallback[key] ?? key
   const t = ((key: UiKey, params?: Params) => format(ui[key], params)) as Translator

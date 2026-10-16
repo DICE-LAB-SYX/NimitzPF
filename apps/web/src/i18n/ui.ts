@@ -4,7 +4,7 @@ const zhHans = {
   objectivePerfect: '完美全歼',
   objectiveReward: '收益最大',
   objectiveCompleteHint: '优先保证每个阶段目标达成（含摧毁主要目标），其次多击毁',
-  objectivePerfectHint: '尽量摧毁所有敌方单位，拿完美完成奖励',
+  objectivePerfectHint: '优先争取摧毁所有敌方单位拿完美完成奖励，全歼无望时尽量多击毁',
   objectiveRewardHint: '最大化击毁奖励的期望值',
   language: '语言',
   operation: '作战',
@@ -144,7 +144,7 @@ const zhHans = {
   noticeGoal: '阶段{n}的目标类型（{type}）暂不支持，概率仅供参考。',
   landingTitle: '打开官方网页版，推荐自动出来',
   landingLead:
-    'NimitzPF 会读取你在太平洋战线网页版里的当前作战，包括敌人、战斗条件、单位生命值和变项库存，直接算出每个关键据点该派哪些单位、怎么排、带什么变项，胜率与游戏显示一致。牌还是由你自己来打。',
+    'NimitzPF 会读取你在太平洋战线（国服叫大洋战线）网页版里的当前作战，包括敌人、战斗条件、单位生命值和变项库存，直接算出每个关键据点该派哪些单位、怎么排、带什么变项，胜率与游戏显示一致。牌还是由你自己来打。',
   landingDemo: '先看看演示 →',
   landingPreviewGame: '游戏网页版',
   landingPreviewPanel: 'NimitzPF 面板',
@@ -186,6 +186,7 @@ const zhHans = {
   landingRealmAsia: '亚服',
   landingRealmEu: '欧服',
   landingRealmNa: '美服',
+  landingRealmCn: '国服',
   landingHelpTitle: '找不到面板？',
   landingHelpNothing: '打开游戏页面后，右边什么都没有',
   landingHelpNothingScript:
@@ -200,7 +201,7 @@ const zhHans = {
   landingHelpClient: '在游戏客户端里打开没有反应',
   landingHelpClientHint: '游戏客户端内置的浏览器不能运行脚本，请用 Chrome、Edge 或 Firefox 打开网页版。',
   landingNotes: '说明',
-  landingNoteDesktop: '支持亚服、欧服、美服的网页版，需要桌面浏览器。',
+  landingNoteDesktop: '支持亚服、欧服、美服和国服的网页版，需要桌面浏览器。',
   landingNoteReadOnly: '面板只读取你的作战数据，不会替你出牌、开战或购买任何东西。',
   landingNotePrivacy: '所有计算都在你的浏览器里完成，不会上传任何数据。',
   landingNoteExact: '战斗规则按官方引擎复刻，面板还会调用游戏页面里的官方引擎核对胜率。',
@@ -209,13 +210,36 @@ const zhHans = {
 export type UiKey = keyof typeof zhHans
 type UiDictionary = Record<UiKey, string>
 
+const zhHansCN: UiDictionary = {
+  ...zhHans,
+  estimatedHint: '这个关键节点还没揭晓，敌人按同难度的历史敌情估算，这里显示的是为它预留的单位。',
+  keypointN: '关键节点{n}',
+  inventory: '修改器库存',
+  modifierStandard: '标准修改器',
+  modifierSpecial: '特殊修改器',
+  modifierPlannedElsewhere: '其他节点已计划使用{n}个',
+  modifierReserved: '剩余库存已安排给其他节点，放到这里会重新规划',
+  modifierLaneRefuses: '所选位置不能装这个修改器',
+  modifierOverHint: '超出库存的手动修改器会被求解器忽略，请减少手动放置',
+  modifierBudget: '标准修改器 {standardUsed}/{standardStock} · 特殊修改器 {specialUsed}/{specialStock}',
+  scopeLocal: '局部',
+  scopeTargeted: '定向',
+  scopeGlobal: '全局',
+  scopeIncoming: '传入',
+  solveEmpty: '当前作战没有需要规划的关键节点',
+  noPrediction: '该布阵无法生效：精准类修改器所在位置没有敌人',
+  shortcutsList: '1–4 选择位置 · ←/→ 切换节点 · ↑/↓ 切换阶段 · Enter 深度求解',
+  reward_modifier: '修改器',
+  statusNoSeasonHint: '当前服务器没有进行中的大洋战线活动。',
+}
+
 const zhHant: UiDictionary = {
   objective: '目標',
   objectiveComplete: '穩妥通關',
   objectivePerfect: '完美全殲',
   objectiveReward: '收益最大',
   objectiveCompleteHint: '優先確保每個階段目標達成（含摧毀主要目標），其次多擊毀',
-  objectivePerfectHint: '盡量摧毀所有敵方單位，拿完美完成獎勵',
+  objectivePerfectHint: '優先爭取摧毀所有敵方單位拿完美完成獎勵，全殲無望時盡量多擊毀',
   objectiveRewardHint: '最大化擊毀獎勵的期望值',
   language: '語言',
   operation: '作戰',
@@ -355,7 +379,7 @@ const zhHant: UiDictionary = {
   noticeGoal: '階段{n}的目標類型（{type}）暫不支援，機率僅供參考。',
   landingTitle: '打開官方網頁版，推薦自動出來',
   landingLead:
-    'NimitzPF 會讀取你在太平洋戰線網頁版裡的目前作戰，包括敵人、戰鬥條件、單位生命值和變項庫存，直接算出每個關鍵據點該派哪些單位、怎麼排、帶什麼變項，勝率與遊戲顯示一致。牌還是由你自己來打。',
+    'NimitzPF 會讀取你在太平洋戰線（國服稱大洋戰線）網頁版裡的目前作戰，包括敵人、戰鬥條件、單位生命值和變項庫存，直接算出每個關鍵據點該派哪些單位、怎麼排、帶什麼變項，勝率與遊戲顯示一致。牌還是由你自己來打。',
   landingDemo: '先看看示範 →',
   landingPreviewGame: '遊戲網頁版',
   landingPreviewPanel: 'NimitzPF 面板',
@@ -397,6 +421,7 @@ const zhHant: UiDictionary = {
   landingRealmAsia: '亞服',
   landingRealmEu: '歐服',
   landingRealmNa: '美服',
+  landingRealmCn: '國服',
   landingHelpTitle: '找不到面板？',
   landingHelpNothing: '開啟遊戲頁面後，右邊什麼都沒有',
   landingHelpNothingScript:
@@ -411,7 +436,7 @@ const zhHant: UiDictionary = {
   landingHelpClient: '在遊戲用戶端裡開啟沒有反應',
   landingHelpClientHint: '遊戲用戶端內建的瀏覽器不能執行腳本，請用 Chrome、Edge 或 Firefox 開啟網頁版。',
   landingNotes: '說明',
-  landingNoteDesktop: '支援亞服、歐服、美服的網頁版，需要桌面瀏覽器。',
+  landingNoteDesktop: '支援亞服、歐服、美服和國服的網頁版，需要桌面瀏覽器。',
   landingNoteReadOnly: '面板只讀取你的作戰資料，不會替你出牌、開戰或購買任何東西。',
   landingNotePrivacy: '所有計算都在你的瀏覽器裡完成，不會上傳任何資料。',
   landingNoteExact: '戰鬥規則依官方引擎復刻，面板還會呼叫遊戲頁面裡的官方引擎核對勝率。',
@@ -423,7 +448,7 @@ const en: UiDictionary = {
   objectivePerfect: 'Perfect',
   objectiveReward: 'Max reward',
   objectiveCompleteHint: 'Secure every stage goal first (primary targets included), then more kills',
-  objectivePerfectHint: 'Destroy every enemy unit for the perfect completion bonus',
+  objectivePerfectHint: 'Go for every enemy unit and the perfect completion bonus; when that is out of reach, destroy as many as possible',
   objectiveRewardHint: 'Maximise the expected kill rewards',
   language: 'Language',
   operation: 'Operation',
@@ -607,6 +632,7 @@ const en: UiDictionary = {
   landingRealmAsia: 'Asia',
   landingRealmEu: 'Europe',
   landingRealmNa: 'North America',
+  landingRealmCn: 'CN',
   landingHelpTitle: 'Cannot find the panel?',
   landingHelpNothing: 'Nothing appears on the right of the game page',
   landingHelpNothingScript:
@@ -621,14 +647,15 @@ const en: UiDictionary = {
   landingHelpClient: 'Nothing happens inside the game client',
   landingHelpClientHint: "The game client's built-in browser cannot run scripts. Open the web version in Chrome, Edge or Firefox.",
   landingNotes: 'Notes',
-  landingNoteDesktop: 'Works with the Asia, EU and NA web versions in a desktop browser.',
+  landingNoteDesktop: 'Works with the Asia, EU, NA and CN web versions in a desktop browser.',
   landingNoteReadOnly: 'The panel only reads your operation. It never plays, starts battles or buys anything for you.',
   landingNotePrivacy: 'Everything is computed in your browser and nothing is uploaded.',
   landingNoteExact: 'The battle rules are rebuilt from the official engine, and the panel also checks the odds with the official engine on the game page.',
 }
 
-export const UI: Readonly<Record<'zh-Hans' | 'zh-Hant' | 'en', UiDictionary>> = {
+export const UI: Readonly<Record<'zh-Hans' | 'zh-Hans-CN' | 'zh-Hant' | 'en', UiDictionary>> = {
   'zh-Hans': zhHans,
+  'zh-Hans-CN': zhHansCN,
   'zh-Hant': zhHant,
   en,
 }

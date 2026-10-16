@@ -40,14 +40,14 @@ function signature(plan: PlanResult): string {
     .join('/')
 }
 
-function metrics(objective: Objective, complete: number, perfect: number, reward: number, stages: number): number[] {
-  if (objective === 'perfect') return [perfect, complete]
+function metrics(objective: Objective, complete: number, perfect: number, reward: number, stages: number, kills: number): number[] {
+  if (objective === 'perfect') return [perfect, kills, complete]
   if (objective === 'reward') return [reward, complete]
   return [complete, stages]
 }
 
 function planMetrics(plan: PlanResult): number[] {
-  return metrics(plan.objective, plan.completeProbability, plan.perfectProbability, plan.expectedReward, plan.expectedStages)
+  return metrics(plan.objective, plan.completeProbability, plan.perfectProbability, plan.expectedReward, plan.expectedStages, plan.expectedKills)
 }
 
 function floorOf(all: readonly (readonly number[])[]): number[] {
@@ -127,14 +127,17 @@ function judge(state: OperationState, planner: Planner, genes: Int32Array, objec
   let reach = 1
   let stages = 0
   let reward = 0
+  let kills = 0
   let perfect = 1
   state.stages.forEach((st, s) => {
     for (const kp of st.keypoints) {
       if (kp.status === 'open' && s >= state.currentStage) continue
       kp.lanes.forEach((l, i) => {
         if (!l) return
-        if (kp.status === 'fought' && kp.record?.[i]?.won) reward += l.reward
-        else perfect = 0
+        if (kp.status === 'fought' && kp.record?.[i]?.won) {
+          reward += l.reward
+          kills++
+        } else perfect = 0
       })
     }
   })
@@ -144,6 +147,7 @@ function judge(state: OperationState, planner: Planner, genes: Int32Array, objec
     let flagged = false
     let down = false
     let stageReward = 0
+    let stageKills = 0
     const open: Outcome[] = []
     for (const kp of st.keypoints) {
       const k = index.get(kp.id)
@@ -163,16 +167,18 @@ function judge(state: OperationState, planner: Planner, genes: Int32Array, objec
         const std = genes[(k * planner.size + i) * 3 + 1]!
         open.push({ p, weight: std >= 0 && planner.modifiers[std] === 'moral-impact' ? 2 : 1, lead: leads(l.enemy) })
         stageReward += p * l.reward
+        stageKills += p
         perfect *= Number.isNaN(swept) ? 0 : swept
       })
     }
     const g = stageChance(base, flagged && !down, st.goal, open)
     reward += reach * stageReward
+    kills += reach * stageKills
     reach *= g
     stages += reach
     complete *= g
   }
-  return metrics(objective, complete, perfect, reward, stages)
+  return metrics(objective, complete, perfect, reward, stages, kills)
 }
 
 function oracle(state: OperationState, objective: Objective): { floor: number[]; cost: number; metrics: readonly number[]; ties: Set<string> } {
@@ -325,6 +331,7 @@ describe('lexicographic optimum', () => {
     ['contested / reward', contested, 'reward'],
     ['linked stages / complete', linked, 'complete'],
     ['crowded / complete', crowded, 'complete'],
+    ['crowded / perfect', crowded, 'perfect'],
     ['crowded / reward', crowded, 'reward'],
     ['buffed / complete', buffed, 'complete'],
     ['buffed / reward', buffed, 'reward'],
@@ -580,6 +587,25 @@ describe('operation planner', () => {
     expect(target.clearedWinProbability).toBeCloseTo(swept, 9)
     expect(target.clearedWinProbability).toBeGreaterThan(target.allWinProbability)
     expect(result.perfectProbability).toBeCloseTo(src.allWinProbability * target.clearedWinProbability, 9)
+  })
+
+  it('falls back to the most kills when no plan can sweep the operation', () => {
+    const state: OperationState = {
+      currentStage: 0,
+      stages: [
+        stage('s1', 2, [keypoint('a', [foe(91), foe(100), foe(84), foe(110)]), keypoint('b', [foe(90), foe(95), foe(85), foe(100)])]),
+        stage('s2', 3, [keypoint('c', [foe(110), foe(105), foe(100), foe(115)])]),
+      ],
+      conditions: [],
+      fleet: ['card_11', 'card_30', 'card_12', 'card_5', 'card_27', 'card_29'].map(card => ({ card, hp: 3 })),
+      inventory: {},
+    }
+    expect(new Planner(state, { objective: 'perfect' }).sweepable).toBe(false)
+    const perfect = solveOperation(state, { objective: 'perfect', timeBudgetMs: 400 })
+    const complete = solveOperation(state, { objective: 'complete', timeBudgetMs: 400 })
+    expect(perfect.perfectProbability).toBe(0)
+    expect(perfect.stages[0]!.keypoints.flatMap(k => k.lanes).filter(l => l.card)).toHaveLength(6)
+    expect(perfect.expectedKills).toBeGreaterThan(complete.expectedKills + 0.5)
   })
 
   it('uses each condition own kill count for removal', () => {

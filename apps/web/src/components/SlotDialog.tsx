@@ -2,6 +2,7 @@ import { cardByCode, MODIFIERS, roundPercent, type CardDef, type ModifierId, typ
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { asset } from '../game/assets.ts'
 import { useT } from '../i18n/useT.ts'
+import { useRealm } from '../live/store.ts'
 import { usePlanFor } from '../solver/plan.ts'
 import {
   evaluatePlacements,
@@ -37,6 +38,7 @@ export function SlotDialog({
   onClose: () => void
 }) {
   const t = useT()
+  const realm = useRealm()
   const { op, kp, stage, placements, hp, conditions } = context
   const owned = useMemo(() => op.state.fleet.map(f => f.card), [op])
   const setPlacements = useStore(s => s.setPlacements)
@@ -169,7 +171,7 @@ export function SlotDialog({
         <div ref={listRef} className={css.list} role="listbox" aria-label={t('fleet')}>
           {enemy && (
             <div className={css.target}>
-              <img className={css.targetArt} src={asset.enemy(enemy.code)} alt="" />
+              <img className={css.targetArt} src={asset.enemy(enemy.code, realm)} alt="" />
               <div className={css.targetName}>
                 <strong>{t.enemyName(enemy.code)}</strong>
                 <span className="num">
@@ -201,7 +203,7 @@ export function SlotDialog({
                   onClose()
                 }}
               >
-                <img className={css.art} src={asset.card(c.card.code)} alt="" />
+                <img className={css.art} src={asset.card(c.card.code, realm)} alt="" />
                 <span className={css.name}>
                   <span className={css.nameLine}>
                     <img className={css.type} src={asset.type(c.card.type)} alt={t.unitType(c.card.type)} />

@@ -1,7 +1,7 @@
 import type { Locale } from '../i18n/index.ts'
 
 const LATIN_TEXT = '0123456789%–·ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
-const CJK_TEXT = '阶段关键据点战斗条件结果表稳妥通关完美全歼收益最大推荐待攻克作战已连接刷新浮动收起敌方我胜率階關據點戰鬥條件結果穩妥通關殲'
+const CJK_TEXT = '阶段关键据点节战斗条件结果表稳妥通关完美全歼收益最大推荐待攻克作战已连接刷新浮动收起敌方我胜率階關據點戰鬥條件結果穩妥通關殲'
 const LATIN_FACES = [
   '500 16px "Barlow Condensed"',
   '600 16px "Barlow Condensed"',

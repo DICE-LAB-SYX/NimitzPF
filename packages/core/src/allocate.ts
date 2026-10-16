@@ -32,6 +32,7 @@ interface Option {
   readonly missed: Distribution
   readonly logPerfect: number
   readonly reward: number
+  readonly kills: number
   readonly strength: number
 }
 
@@ -225,6 +226,7 @@ function buildMenu(
     const w = new Uint8Array(enemyLanes.length)
     let logPerfect = 0
     let reward = 0
+    let kills = 0
     let strength = 0
     for (let i = 0; i < enemyLanes.length; i++) {
       const lane = enemyLanes[i]!
@@ -232,12 +234,13 @@ function buildMenu(
       const spec = at >= 0 ? specs[at]! : null
       const standard = spec ? spec.std[Math.floor(choice[at]! / spec.spc.length)]! : NONE
       w[i] = standard !== NONE && planner.modifiers[standard] === 'moral-impact' ? 2 : 1
-      logPerfect += Math.log(Math.max(q[i]!, 1e-300))
+      logPerfect += q[i]! > 0 ? Math.log(q[i]!) : -Infinity
       reward += p[i]! * kp.rewards[lane]!
+      kills += p[i]!
       strength += p[i]! * w[i]!
     }
     const own = usage.slice()
-    raw.push({ usage: own, mask: maskOf(own), count, picks: picks.slice(), p, q, w, logPerfect, reward, strength })
+    raw.push({ usage: own, mask: maskOf(own), count, picks: picks.slice(), p, q, w, logPerfect, reward, kills, strength })
   }
 
   const walk = (i: number, count: number) => {
@@ -310,6 +313,7 @@ interface Entry {
   readonly g: number
   readonly logPerfect: number
   readonly reward: number
+  readonly kills: number
   readonly trail: Int32Array
   readonly order: number
 }
@@ -351,6 +355,7 @@ interface StageEntry {
   readonly logG: number
   readonly logPerfect: number
   readonly reward: number
+  readonly kills: number
   readonly trail: Int32Array
 }
 
@@ -358,6 +363,7 @@ function stageList(planner: Planner, s: number, menus: readonly Menu[], avail: I
   const stage = planner.stages[s]!
   const goal = stage.goal
   const perfect = planner.objective === 'perfect'
+  const sweep = perfect && planner.sweepable
   const reward = planner.objective === 'reward'
   const bound = SPILL * frontier
   const flagged = stage.flagged
@@ -372,6 +378,7 @@ function stageList(planner: Planner, s: number, menus: readonly Menu[], avail: I
       g: planner.stagePass(s, start, start),
       logPerfect: 0,
       reward: 0,
+      kills: 0,
       trail: new Int32Array(0),
       order: 0,
     },
@@ -404,6 +411,7 @@ function stageList(planner: Planner, s: number, menus: readonly Menu[], avail: I
           g: planner.stagePass(s, dist, missed),
           logPerfect: entry.logPerfect + option.logPerfect,
           reward: entry.reward + option.reward,
+          kills: entry.kills + option.kills,
           trail,
           order: order++,
         })
@@ -427,7 +435,8 @@ function stageList(planner: Planner, s: number, menus: readonly Menu[], avail: I
       for (; j < kept.length; j++) {
         const other = kept[j]!
         if ((other.mask & ~item.mask) !== 0 || other.total > item.total) continue
-        if (perfect && other.logPerfect < item.logPerfect - 1e-12) continue
+        if (sweep && other.logPerfect < item.logPerfect - 1e-12) continue
+        if (perfect && other.kills < item.kills - 1e-12) continue
         if (reward && other.reward < item.reward - 1e-12) continue
         deep++
         if (within(other.usage, item.usage) && (flagged ? metCovers(other, item, goal) : survivalCovers(other.dist, item.dist, goal))) break
@@ -437,7 +446,16 @@ function stageList(planner: Planner, s: number, menus: readonly Menu[], avail: I
     }
     entries = kept
   }
-  return entries.map(e => ({ usage: e.usage, total: e.total, g: e.g, logG: Math.log(Math.max(e.g, 1e-300)), logPerfect: e.logPerfect, reward: e.reward, trail: e.trail }))
+  return entries.map(e => ({
+    usage: e.usage,
+    total: e.total,
+    g: e.g,
+    logG: Math.log(Math.max(e.g, 1e-300)),
+    logPerfect: e.logPerfect,
+    reward: e.reward,
+    kills: e.kills,
+    trail: e.trail,
+  }))
 }
 
 interface State {
@@ -448,6 +466,7 @@ interface State {
   readonly stages: number
   readonly logPerfect: number
   readonly reward: number
+  readonly kills: number
   readonly firm: number
   readonly firmReach: number
   readonly parent: State | null
@@ -455,8 +474,8 @@ interface State {
   readonly order: number
 }
 
-function rank(objective: Objective, lc: number, st: number, lp: number, rw: number, b: State): number {
-  if (objective === 'perfect') return desc(lp, b.logPerfect) || desc(lc, b.logComplete) || desc(st, b.stages)
+function rank(objective: Objective, sweep: boolean, lc: number, st: number, lp: number, rw: number, kl: number, b: State): number {
+  if (objective === 'perfect') return (sweep ? desc(lp, b.logPerfect) : 0) || desc(kl, b.kills) || desc(lc, b.logComplete) || desc(st, b.stages)
   if (objective === 'reward') return desc(rw, b.reward) || desc(lc, b.logComplete) || desc(st, b.stages)
   return desc(lc, b.logComplete) || desc(st, b.stages)
 }
@@ -468,9 +487,18 @@ interface Pick {
   readonly cost: number
 }
 
+function versus(a: readonly number[], b: readonly number[]): number {
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return desc(a[i]!, b[i]!)
+  return 0
+}
+
+function meets(values: readonly number[], low: readonly number[]): boolean {
+  for (let i = 0; i < values.length; i++) if (values[i]! < low[i]!) return false
+  return true
+}
+
 function byMetrics(a: Pick, b: Pick): number {
-  for (let i = 0; i < a.metrics.length; i++) if (a.metrics[i] !== b.metrics[i]) return desc(a.metrics[i]!, b.metrics[i]!)
-  return a.cost - b.cost
+  return versus(a.metrics, b.metrics) || a.cost - b.cost
 }
 
 function byCost(a: Pick, b: Pick): number {
@@ -611,9 +639,10 @@ export function allocate(
     restPerfect[s] = restPerfect[s + 1]! + (stale[s] ? 0 : lp)
     restReward[s] = restReward[s + 1]! + (stale[s] ? peak[s]! : rw)
   }
-  const byUsage = (a: State, b: State) => a.total - b.total || rank(objective, a.logComplete, a.stages, a.logPerfect, a.reward, b) || a.order - b.order
-  const bound = SPILL * limits.frontier
   const perfect = objective === 'perfect'
+  const sweep = perfect && planner.sweepable
+  const byUsage = (a: State, b: State) => a.total - b.total || rank(objective, sweep, a.logComplete, a.stages, a.logPerfect, a.reward, a.kills, b) || a.order - b.order
+  const bound = SPILL * limits.frontier
   const reward = objective === 'reward'
   let states: State[] = [
     {
@@ -624,6 +653,7 @@ export function allocate(
       stages: 0,
       logPerfect: planner.perfectBrokenBefore() ? -Infinity : 0,
       reward: planner.fixedReward(),
+      kills: planner.fixedKills(),
       firm: reward ? planner.fixedReward() : perfect && planner.perfectBrokenBefore() ? -Infinity : 0,
       firmReach: 0,
       parent: null,
@@ -653,8 +683,9 @@ export function allocate(
         const stages = state.stages + Math.exp(logComplete)
         const logPerfect = state.logPerfect + entry.logPerfect
         const gain = state.reward + reach * entry.reward
-        const versus = best ? rank(objective, logComplete, stages, logPerfect, gain, best) : -1
-        const lead = versus < 0 || (versus === 0 && total < best!.total)
+        const kills = state.kills + reach * entry.kills
+        const against = best ? rank(objective, sweep, logComplete, stages, logPerfect, gain, kills, best) : -1
+        const lead = against < 0 || (against === 0 && total < best!.total)
         const firmReach = loose ? state.firmReach : state.firmReach + entry.logG
         const firm = reward ? state.firm + lift * (loose ? peak[s]! : entry.reward) : perfect ? state.firm + (loose ? 0 : entry.logPerfect) : firmReach
         const keep = total <= cutoff && !(prune && firm + rest < target)
@@ -662,7 +693,7 @@ export function allocate(
         if (!fits(state.usage, entry.usage, avail)) continue
         work += BUILD_WORK
         const usage = sum(state.usage, entry.usage)
-        const next: State = { usage, mask: maskOf(usage), total, logComplete, stages, logPerfect, reward: gain, firm, firmReach, parent: state, entry: e, order: order++ }
+        const next: State = { usage, mask: maskOf(usage), total, logComplete, stages, logPerfect, reward: gain, kills, firm, firmReach, parent: state, entry: e, order: order++ }
         if (lead) best = next
         if (!keep) continue
         pool.push(next)
@@ -688,7 +719,8 @@ export function allocate(
         const other = kept[j]!
         if ((other.mask & ~state.mask) !== 0) continue
         if (other.logComplete < state.logComplete - 1e-12 || other.stages < state.stages - 1e-12) continue
-        if (perfect && other.logPerfect < state.logPerfect - 1e-12) continue
+        if (sweep && other.logPerfect < state.logPerfect - 1e-12) continue
+        if (perfect && other.kills < state.kills - 1e-12) continue
         if (reward && other.reward < state.reward - 1e-12) continue
         deep++
         if (within(other.usage, state.usage)) break
@@ -702,7 +734,7 @@ export function allocate(
 
   const list = stageLists[last]!
   const total = new Int32Array(modifierCount)
-  const [lowA, lowB] = [0, 1].map(i => floor[i]! - 1e-9 * Math.max(1, Math.abs(floor[i]!)))
+  const low = floor.map(f => f - 1e-9 * Math.max(1, Math.abs(f)))
   const chosen: Pick[] = []
   const metrics: number[] = []
   let strongest: Pick | null = null
@@ -713,16 +745,15 @@ export function allocate(
       const entry = list[e]!
       work += PAIR_WORK
       const complete = Math.exp(state.logComplete + entry.logG)
-      primaryMetrics(objective, complete, Math.exp(state.logPerfect + entry.logPerfect), state.reward + reach * entry.reward, state.stages + complete, metrics)
-      const a = metrics[0]!
-      const b = metrics[1]!
-      const passing = a >= lowA! && b >= lowB!
-      const lead = !strongest || (desc(a, strongest.metrics[0]!) || desc(b, strongest.metrics[1]!)) <= 0
+      const kills = state.kills + reach * entry.kills
+      primaryMetrics(objective, complete, Math.exp(state.logPerfect + entry.logPerfect), state.reward + reach * entry.reward, state.stages + complete, kills, metrics)
+      const passing = meets(metrics, low)
+      const lead = !strongest || versus(metrics, strongest.metrics) <= 0
       if (!passing && !lead) continue
       if (!fits(state.usage, entry.usage, avail)) continue
       work += COST_WORK
       for (let m = 0; m < modifierCount; m++) total[m] = state.usage[m]! + entry.usage[m]! + fixed[m]!
-      const pick: Pick = { state, entry: e, metrics: [a, b], cost: planner.usageCost(total) }
+      const pick: Pick = { state, entry: e, metrics: metrics.slice(), cost: planner.usageCost(total) }
       if (lead && (!strongest || byMetrics(pick, strongest) < 0)) strongest = pick
       if (!passing) continue
       if (chosen.length >= limits.candidates && byCost(pick, chosen[chosen.length - 1]!) >= 0) continue

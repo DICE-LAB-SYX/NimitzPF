@@ -1,6 +1,6 @@
 import { GAME_HOSTS } from './protocol.ts'
 
-export const USERSCRIPT_VERSION = '1.1.0'
+export const USERSCRIPT_VERSION = '1.2.0'
 export const USERSCRIPT_FILE = 'nimitzpf.user.js'
 export const PAGES_BASE = 'https://dice-lab-syx.github.io/NimitzPF/'
 export const USERSCRIPT_EVENT = 'nimitzpf:userscript'
@@ -17,7 +17,7 @@ export function userscript({ base, bridge, dev = false }: UserscriptOptions): st
     `// @name         NimitzPF${dev ? ' (dev)' : ''}`,
     `// @namespace    ${base}`,
     `// @version      ${USERSCRIPT_VERSION}`,
-    '// @description  太平洋战线阵容推荐面板：自动读取当前作战并给出推荐 / Pacific Front lineup planner',
+    '// @description  太平洋战线（国服：大洋战线）阵容推荐面板：自动读取当前作战并给出推荐 / Pacific Front lineup planner',
     ...GAME_HOSTS.map(h => `// @match        https://${h}/*`),
     ...(dev ? ['// @include      http://localhost:*/*', '// @include      http://127.0.0.1:*/*'] : [`// @match        ${base}*`]),
     '// @grant        none',

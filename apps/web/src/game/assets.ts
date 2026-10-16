@@ -1,10 +1,15 @@
 import type { ModifierId, SpecIndex, UnitType, VulnCode } from '@nimitzpf/core'
+import { CN_REALM } from '../bridge/protocol.ts'
+import cnArt from './cn-art.json' with { type: 'json' }
 
 const base = `${import.meta.env.BASE_URL}game/`
 
+const art = (dir: 'cards' | 'enemies', code: string, realm: string | null) =>
+  `${base}${realm === CN_REALM && cnArt[dir].includes(code) ? 'cn/' : ''}${dir}/${code}.webp`
+
 export const asset = {
-  card: (code: string) => `${base}cards/${code}.webp`,
-  enemy: (code: string) => `${base}enemies/${code}.webp`,
+  card: (code: string, realm: string | null = null) => art('cards', code, realm),
+  enemy: (code: string, realm: string | null = null) => art('enemies', code, realm),
   type: (type: UnitType) => `${base}types/${type}.webp`,
   spec: (index: SpecIndex) => `${base}specs/${index}.webp`,
   vuln: (code: VulnCode | 'seadog') => `${base}vulns/${code}.webp`,

@@ -9,7 +9,7 @@ import { Button, cx, Dialog, Segmented, Stars } from '../ui/primitives.tsx'
 import { RewardWeights } from './RewardWeights.tsx'
 import css from './TopBar.module.css'
 
-const REALM: Readonly<Record<string, string>> = { sg: 'ASIA', eu: 'EU', us: 'NA' }
+const REALM: Readonly<Record<string, string>> = { sg: 'ASIA', eu: 'EU', us: 'NA', cn360: 'CN' }
 
 function connectionKey(c: Connection) {
   return (

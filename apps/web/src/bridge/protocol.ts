@@ -4,8 +4,9 @@ import type { ApiEffectPayload, ApiInventory, ApiOperation, ApiSpecs, ApiState }
 export const PROTOCOL = 1
 export const CHANNEL = 'nimitzpf'
 
-export const GAME_HOSTS = ['pacificfront.worldofwarships.asia', 'pacificfront.worldofwarships.eu', 'pacificfront.worldofwarships.com'] as const
+export const GAME_HOSTS = ['pacificfront.worldofwarships.asia', 'pacificfront.worldofwarships.eu', 'pacificfront.worldofwarships.com', 'oceanfront.wowsgame.cn'] as const
 export const GAME_ORIGINS: readonly string[] = GAME_HOSTS.map(h => `https://${h}`)
+export const CN_REALM = 'cn360'
 
 export interface Route {
   readonly lang: string | null
