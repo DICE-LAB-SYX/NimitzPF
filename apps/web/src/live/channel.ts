@@ -16,7 +16,7 @@ let messageId = 0
 const verdicts = new Map<number, (verdict: Verdict | null) => void>()
 const plays = new Map<number, (result: PlayResult | null) => void>()
 
-export const PLAY_TIMEOUT_MS = 120000
+const PLAY_TIMEOUT_MS = 180000
 
 export function embedded(): boolean {
   return typeof window !== 'undefined' && window.parent !== window && new URLSearchParams(window.location.search).has('embed')

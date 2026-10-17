@@ -1,4 +1,4 @@
-export function roundHalfAway(x: number): number {
+function roundHalfAway(x: number): number {
   if (!Number.isFinite(x)) return x
   const t = Math.trunc(x)
   return Math.abs(x - t) >= 0.5 ? t + Math.sign(x) : t

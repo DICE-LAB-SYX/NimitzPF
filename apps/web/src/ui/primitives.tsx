@@ -132,6 +132,15 @@ export function Button({
   )
 }
 
+export function Toggle({ checked, onChange, title, children }: { checked: boolean; onChange: (checked: boolean) => void; title?: string; children: ReactNode }) {
+  return (
+    <label className={css.toggle} title={title}>
+      <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} />
+      {children}
+    </label>
+  )
+}
+
 export function Odds({ probability, size }: { probability: number; size: 'sm' | 'lg' }) {
   const pct = roundPercent(probability)
   const tone = pct >= 100 ? css.oddsCertain : pct <= 0 ? css.oddsZero : pct > 50 ? css.oddsLikely : css.oddsUnlikely

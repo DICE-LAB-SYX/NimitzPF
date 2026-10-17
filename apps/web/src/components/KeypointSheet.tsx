@@ -20,7 +20,7 @@ import {
   sweptConditions,
   type Operation,
 } from '../state/derive.ts'
-import { LANES, type LaneIndex, type PlacementDraft } from '../state/model.ts'
+import { BOOST, LANES, type LaneIndex, type PlacementDraft } from '../state/model.ts'
 import { useStore } from '../state/store.ts'
 import { Button, cx, Odds, Stars } from '../ui/primitives.tsx'
 import { Icon } from '../ui/Icon.tsx'
@@ -221,6 +221,7 @@ export function KeypointSheet({ ctx }: { ctx: KeypointContext }) {
                   <EnemyCard
                     enemy={slot.enemy}
                     rewards={meta.rewards[lane]}
+                    boosted={Boolean(placements[lane]?.card) && placements[lane]?.standard === BOOST}
                     result={lanesOk?.[lane]?.enemy ?? null}
                     destroyed={Boolean(won)}
                     survived={fought && !won && Boolean(kp.record?.[lane])}

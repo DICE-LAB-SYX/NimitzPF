@@ -198,6 +198,7 @@ export function AllyCard({
 export function EnemyCard({
   enemy,
   rewards,
+  boosted = false,
   result,
   size = 132,
   destroyed,
@@ -205,6 +206,7 @@ export function EnemyCard({
 }: {
   enemy: EnemyUnit
   rewards?: readonly RewardDraft[] | null
+  boosted?: boolean
   result?: SideResult | null
   size?: number
   destroyed?: boolean
@@ -252,7 +254,7 @@ export function EnemyCard({
         {rewards && rewards.length > 0 && (
           <span className={css.reward}>
             {rewards.map((r, i) => (
-              <RewardBadge key={i} reward={r} />
+              <RewardBadge key={i} reward={r} boosted={boosted} />
             ))}
           </span>
         )}

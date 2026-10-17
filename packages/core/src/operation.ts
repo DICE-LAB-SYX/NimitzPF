@@ -61,6 +61,7 @@ export interface OperationState {
   readonly fleet: readonly FleetEntry[]
   readonly inventory: Inventory
   readonly pinned?: Readonly<Record<string, readonly PinnedLane[]>>
+  readonly boosted?: Readonly<Record<string, readonly number[]>>
 }
 
 export interface KeypointLocation {

@@ -1,12 +1,14 @@
 import type { Objective } from '@nimitzpf/core'
 import { useState } from 'react'
+import { asset } from '../game/assets.ts'
 import { LOCALE_LABEL, LOCALES } from '../i18n/index.ts'
 import { useT } from '../i18n/useT.ts'
 import { embedded, send } from '../live/channel.ts'
 import { defaultOperation, useLive, useOperations, type Connection } from '../live/store.ts'
+import { BOOST } from '../state/model.ts'
 import { useStore } from '../state/store.ts'
-import { Button, cx, Dialog, Segmented, Stars } from '../ui/primitives.tsx'
-import { AutoToggle } from './AutoPlay.tsx'
+import { Button, cx, Dialog, Segmented, Stars, Toggle } from '../ui/primitives.tsx'
+import { AutoToggle, BuyToggle } from './AutoPlay.tsx'
 import { RewardWeights } from './RewardWeights.tsx'
 import css from './TopBar.module.css'
 
@@ -46,6 +48,8 @@ export function TopBar() {
   const selected = useStore(s => s.selection.operation) ?? defaultOperation(snapshot)
   const objective = useStore(s => s.objective)
   const locale = useStore(s => s.locale)
+  const boost = useStore(s => s.effectiveness)
+  const setEffectiveness = useStore(s => s.setEffectiveness)
   const setObjective = useStore(s => s.setObjective)
   const setLocale = useStore(s => s.setLocale)
   const select = useStore(s => s.select)
@@ -121,7 +125,12 @@ export function TopBar() {
             {t('rewardWeights')}
           </button>
         )}
+        <Toggle checked={boost} onChange={setEffectiveness} title={t('boostHint', { m: t.modifier(BOOST) })}>
+          <img src={asset.modifier(BOOST)} alt="" />
+          {t.modifier(BOOST)}
+        </Toggle>
         <AutoToggle />
+        <BuyToggle />
         <Segmented size="sm" label={t('language')} value={locale} onChange={l => setLocale(l)} options={LOCALES.map(l => ({ value: l, label: LOCALE_LABEL[l] }))} />
       </div>
 

@@ -11,6 +11,7 @@ import {
   weightedWins,
   type Condition,
   type ConditionKind,
+  type ConditionScope,
   type EnemyUnit,
   type KeypointInput,
   type KeypointStatus,
@@ -38,7 +39,6 @@ import type {
   ApiSpecs,
 } from './api.ts'
 
-export type ConditionScope = 'local' | 'targeted' | 'global'
 export type ConditionStatus = 'active' | 'pending' | 'weakened' | 'removed'
 
 export interface LiveCondition {
@@ -67,11 +67,11 @@ export interface LiveKeypoint {
   readonly difficulty: number
   readonly revealed: boolean
   readonly rewards: readonly (readonly RewardDraft[] | null)[]
+  readonly boost: readonly (number | null)[]
   readonly allies: readonly (ApiAlly | null)[]
 }
 
 export interface LiveStage {
-  readonly goalType: string
   readonly estimated: boolean
   readonly goalEstimated: boolean
   readonly kills: number | null
@@ -136,7 +136,7 @@ function spec(specs: ApiSpecs | undefined, k: SpecIndex): number | undefined {
   return typeof v === 'number' ? v : undefined
 }
 
-export function enemyUnit(enemy: NonNullable<ApiSlot['enemy']>): EnemyUnit {
+function enemyUnit(enemy: NonNullable<ApiSlot['enemy']>): EnemyUnit {
   const vulns: Partial<Record<VulnCode, number>> = {}
   for (const [key, value] of Object.entries(enemy.vulns ?? {})) {
     const code = Number(key) as VulnCode
@@ -155,10 +155,13 @@ function kebab(camel: string): string {
   return camel.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()
 }
 
+const PROGRESS_POINTS = 'adeck_progress_points'
+
 export function rewardDraft(r: ApiReward, currencies: CurrencyCodes): RewardDraft {
   const amount = Math.max(0, Number(r.amount) || 0)
   if (r.type === 'currency' && r.code === currencies.main) return { kind: 'supplies', amount, modifier: null }
-  if (r.code === currencies.progress || r.code === 'adeck_progress_points') return { kind: 'progress', amount, modifier: null }
+  if (r.code === PROGRESS_POINTS && r.boostable === true) return { kind: 'progress', amount, modifier: null, boostable: true }
+  if (r.code === currencies.progress || r.code === PROGRESS_POINTS) return { kind: 'progress', amount, modifier: null }
   if (r.code.startsWith('adeck2_card_')) return { kind: 'card', amount, modifier: null }
   if (r.code.startsWith('adeck2_modifier_')) {
     const id = kebab(r.code.slice('adeck2_modifier_'.length)) as ModifierId
@@ -188,7 +191,7 @@ function deltas(base: ApiSpecs | undefined, delta: ApiSpecs | undefined, final: 
   return out
 }
 
-export function effectOf(p: ApiEffectPayload, final: boolean): Condition | null {
+function effectOf(p: ApiEffectPayload, final: boolean): Condition | null {
   const exempt = restriction(p.apply_restrictions)
   switch (p.type) {
     case 1:
@@ -208,7 +211,7 @@ export function effectOf(p: ApiEffectPayload, final: boolean): Condition | null 
   }
 }
 
-export function isNeutral(c: Condition): boolean {
+function isNeutral(c: Condition): boolean {
   switch (c.kind) {
     case 'player-specs':
     case 'enemy-power':
@@ -314,7 +317,7 @@ export const LOCKED_STAGE_GOAL = 0.6
 const KILL_GOALS = new Set(['defeat_vehicles', 'cleared_stage'])
 const KNOWN_GOALS = new Set([...KILL_GOALS, 'win_previous_stage'])
 
-export function stageGoal(api: Pick<ApiOperation, 'stages' | 'finishCondition'>, s: number, keypoints: readonly KeypointInput[]): { value: number; estimated: boolean } {
+function stageGoal(api: Pick<ApiOperation, 'stages' | 'finishCondition'>, s: number, keypoints: readonly KeypointInput[]): { value: number; estimated: boolean } {
   const target = api.stages[s]?.condition?.target
   if (typeof target === 'number') return { value: Math.max(0, target), estimated: false }
   const last = api.finishCondition?.lastStageDefeatTarget
@@ -329,26 +332,29 @@ export function toLiveOperation(api: ApiOperation, ctx: AdapterContext): LiveOpe
   const currentStage = currentStageOf(api)
   const metas = new Map<string, LiveKeypoint>()
   const laneRewards: (readonly RewardDraft[] | null)[] = []
-  const stagesRaw = api.stages.map((stage, s) => {
-    const kps = (stage.keypoints ?? []).map((kp, i) => {
-      const id = String(kp.id)
+  const stagesRaw = api.stages.map(stage => {
+    const kps = (stage.keypoints ?? []).map((kp, index) => {
       const slots = slotsOf(kp, size)
-      const revealed = slots.some(x => x?.enemy)
-      const difficulty = tagged(kp.tags, KEYPOINT_DIFFICULTY, 2)
       const rewards = slots.map(x => (x?.enemy && x.rewards?.length ? x.rewards.map(r => rewardDraft(r, currencies)) : null))
-      const number = Number(/\d+/.exec(kp.name ?? '')?.[0] ?? i + 1)
-      metas.set(id, { id, number, stage: s, index: i, raw: kp.status, difficulty, revealed, rewards, allies: slots.map(x => x?.ally ?? null) })
       rewards.forEach(r => laneRewards.push(r))
-      return { kp, id, slots, revealed, difficulty, status: keypointStatus(kp.status) }
+      return { kp, index, slots, rewards }
     })
     return { stage, kps }
   })
   const values = rewardValues(laneRewards, ctx.weights)
+  const lifted = rewardValues(laneRewards, ctx.weights, true)
   let cursor = 0
   const flags: { estimated: boolean; goalEstimated: boolean }[] = []
   const stages: StageInput[] = stagesRaw.map(({ stage, kps }, s) => {
     let estimated = false
-    const keypoints = kps.map(({ id, slots, revealed, difficulty, status }): KeypointInput => {
+    const keypoints = kps.map(({ kp, index, slots, rewards }): KeypointInput => {
+      const id = String(kp.id)
+      const revealed = slots.some(x => x?.enemy)
+      const difficulty = tagged(kp.tags, KEYPOINT_DIFFICULTY, 2)
+      const status = keypointStatus(kp.status)
+      const number = Number(/\d+/.exec(kp.name ?? '')?.[0] ?? index + 1)
+      const boost = rewards.map((r, lane) => (r?.some(x => x.boostable) ? (lifted[cursor + lane] ?? null) : null))
+      metas.set(id, { id, number, stage: s, index, raw: kp.status, difficulty, revealed, rewards, boost, allies: slots.map(x => x?.ally ?? null) })
       const lanes = slots.map(x => {
         const value = values[cursor++] ?? 1
         return x?.enemy ? { enemy: enemyUnit(x.enemy), reward: value } : null
@@ -391,7 +397,7 @@ export function toLiveOperation(api: ApiOperation, ctx: AdapterContext): LiveOpe
       const local = stages[s]!.keypoints.reduce((n, k) => n + (k.status === 'fought' ? weightedWins(k) : 0), 0)
       if (local !== total) issues.push({ kind: 'kills', stage: s, server: total, local })
     }
-    return { goalType: type, ...flags[s]!, kills: typeof total === 'number' ? total : null }
+    return { ...flags[s]!, kills: typeof total === 'number' ? total : null }
   })
 
   return {

@@ -31,6 +31,15 @@ interface BoardState {
   readonly modifiersGroupB: readonly ({ readonly id: string } | null)[]
 }
 
+interface Wallet {
+  readonly balance: Readonly<Record<string, number>>
+  readonly price: readonly { readonly code?: string; readonly amount: number }[]
+}
+
+function fitted(board: BoardState | null, lane: number, id: string): boolean {
+  return board?.modifiersGroupA[lane]?.id === id || board?.modifiersGroupB[lane]?.id === id
+}
+
 export class DriveError extends Error {
   constructor(
     readonly step: DriveStep,
@@ -159,7 +168,22 @@ export class Driver {
   private readonly cursor = new Cursor()
   private guards: (() => void) | null = null
 
-  constructor(private readonly host: DriverHost) {}
+  private readonly failures: { readonly at: number; readonly url: string }[] = []
+
+  constructor(private readonly host: DriverHost) {
+    if (typeof PerformanceObserver !== 'function') return
+    new PerformanceObserver(list => {
+      for (const e of list.getEntries()) {
+        if (((e as PerformanceResourceTiming).responseStatus ?? 0) < 400 || !e.name.includes('/api/v2/')) continue
+        this.failures.push({ at: e.startTime, url: e.name })
+        if (this.failures.length > 50) this.failures.shift()
+      }
+    }).observe({ type: 'resource' })
+  }
+
+  private failed(since: number, ...paths: string[]): boolean {
+    return this.failures.some(f => f.at >= since && paths.some(p => f.url.includes(p)))
+  }
 
   private check(): void {
     if (this.host.halted()) throw new DriveError('aborted')
@@ -430,6 +454,83 @@ export class Driver {
     return find(p => p.id === id && Array.isArray(p.accept))
   }
 
+  private left(id: string): number | null {
+    const group = findFiber(p => 'amountsById' in p && 'ownedAmountsById' in p && typeof p.modifierType === 'number')
+    const amounts = group?.memoizedProps?.amountsById as Readonly<Record<string, number>> | undefined
+    return amounts ? (amounts[id] ?? 0) : null
+  }
+
+  private missing(keypointId: string, slots: readonly (PlaySlot | null)[], id: string): number | null {
+    const board = this.board(keypointId)
+    const left = this.left(id)
+    if (!board || left === null) return null
+    return slots.filter((s, lane) => s?.modifiers?.includes(id) && !fitted(board, lane, id)).length - left
+  }
+
+  private buyButton(id: string): HTMLButtonElement | null {
+    const tile = find(p => (p.modifierProps as { id?: unknown } | undefined)?.id === id && 'onBuyClick' in p)
+    const button = tile?.querySelector('button')
+    return button && shown(button) && !button.disabled ? button : null
+  }
+
+  private quantity(): HTMLInputElement | null {
+    const input = document.querySelector('input[name="quantity-input"]')
+    return input instanceof HTMLInputElement && shown(input) ? input : null
+  }
+
+  private wallet(): Wallet | null {
+    const f = findFiber(p => Array.isArray(p.price) && typeof p.balance === 'object' && p.balance !== null && p.isLoading === false)
+    return f ? (f.memoizedProps as unknown as Wallet) : null
+  }
+
+  private async dismiss(): Promise<void> {
+    const close = keyed('close-button')
+    if (close) await this.click(close)
+    await this.waitFor(() => !keyed('close-button'), 3000)
+  }
+
+  private async abandon(detail: string): Promise<never> {
+    await this.dismiss()
+    throw new DriveError('buy', detail)
+  }
+
+  private async purchase(id: string, amount: number): Promise<void> {
+    const buy = this.buyButton(id)
+    if (!buy) throw new DriveError('buy', id)
+    console.info('[NimitzPF] buy', id, amount)
+    await this.click(buy)
+    const input = await this.waitFor(() => (keyed('purchase-button') ? this.quantity() : null), 6000)
+    if (!input) return this.abandon('window')
+    const wallet = await this.waitFor(() => this.wallet(), 4000)
+    const sheet = find(p => typeof p.modifierId === 'string' && typeof p.closeModal === 'function')
+    if (sheet?.querySelector('[data-auto-testing-id="retry-button"]')) return this.abandon('window')
+    const each = Number(input.value) || 1
+    if (wallet?.price.some(p => (wallet.balance[p.code ?? ''] ?? 0) * each < p.amount * amount)) return this.abandon('funds')
+    const plus = input.nextElementSibling
+    for (let i = 0; i < 10 && Number(input.value) < amount && plus instanceof HTMLButtonElement && !plus.disabled; i++) await this.click(plus)
+    const confirm = keyed('purchase-button')
+    if (Number(input.value) !== amount || !(confirm instanceof HTMLButtonElement) || confirm.disabled) return this.abandon('quantity')
+    const since = performance.now()
+    await this.click(confirm)
+    const failed = () => this.failed(since, '/api/v2/modifier/purchase/', '/api/v2/operation/start/')
+    const outcome = await this.waitFor(() => (failed() ? 'rejected' : !keyed('purchase-button') && keyed('close-button')), 15000)
+    if (outcome === null || outcome === 'rejected') return this.abandon(outcome ?? 'pending')
+    await this.click(outcome)
+    await this.waitFor(() => !keyed('close-button'), 4000)
+  }
+
+  private async restock(keypointId: string, slots: readonly (PlaySlot | null)[], buy: readonly string[]): Promise<void> {
+    for (const id of buy) {
+      const short = this.missing(keypointId, slots, id)
+      if (short === null) throw new DriveError('buy', id)
+      if (short <= 0) continue
+      await this.purchase(id, short)
+      const stocked = await this.waitFor(() => (this.missing(keypointId, slots, id) ?? 1) <= 0, 15000, 200)
+      if (!stocked) throw new DriveError('buy', 'stock')
+      await sleep(400)
+    }
+  }
+
   private async placeCards(keypointId: string, slots: readonly (PlaySlot | null)[]): Promise<void> {
     for (let attempt = 0; attempt < 2; attempt++) {
       for (const [lane, slot] of slots.entries()) {
@@ -456,22 +557,19 @@ export class Driver {
   private async placeModifiers(keypointId: string, slots: readonly (PlaySlot | null)[]): Promise<void> {
     const wanted: { lane: number; id: string }[] = []
     slots.forEach((s, lane) => s?.modifiers?.forEach(id => wanted.push({ lane, id })))
-    const groupOf = (type: number) => (type === 1 ? 'modifiersGroupA' : 'modifiersGroupB')
     for (let attempt = 0; attempt < 2; attempt++) {
       let missing = false
       for (const { lane, id } of wanted) {
+        if (fitted(this.board(keypointId), lane, id)) continue
         const item = this.modifier(id)
         if (!item) throw new DriveError('modifier', id)
-        if (this.board(keypointId)?.[groupOf(item.type)][lane]?.id === id) continue
         missing = true
         await this.drag(item.el, () => this.slot(`modifier-slot-${item.type}-${lane}`))
       }
       if (!missing) return
     }
-    for (const { lane, id } of wanted) {
-      const item = this.modifier(id)
-      if (!item || this.board(keypointId)?.[groupOf(item.type)][lane]?.id !== id) throw new DriveError('modifier', id)
-    }
+    const board = this.board(keypointId)
+    for (const { lane, id } of wanted) if (!fitted(board, lane, id)) throw new DriveError('modifier', id)
   }
 
   private fleetList(): HTMLElement | null {
@@ -502,13 +600,14 @@ export class Driver {
     }
   }
 
-  async battle(operationId: string, keypointId: string, slots: readonly (PlaySlot | null)[], label: string): Promise<void> {
+  async battle(operationId: string, keypointId: string, slots: readonly (PlaySlot | null)[], label: string, buy: readonly string[] = []): Promise<void> {
     this.cursor.show(label)
     this.block(true)
     try {
       await this.openKeypoint(operationId, keypointId)
       await this.clearBoard(keypointId, slots)
       await this.placeCards(keypointId, slots)
+      await this.restock(keypointId, slots, buy)
       await this.placeModifiers(keypointId, slots)
       await sleep(700)
       const go = await this.waitFor(() => {
@@ -520,12 +619,8 @@ export class Driver {
       await this.click(go)
       const confirm = await this.waitFor(() => keyed('start-mission-button'), 1500)
       if (confirm) await this.click(confirm)
-      const rejected = () =>
-        performance
-          .getEntriesByType('resource')
-          .some(e => e.startTime >= since && e.name.includes('/api/v2/keypoint/start/') && ((e as PerformanceResourceTiming).responseStatus ?? 0) >= 400)
       const started = await this.waitFor(() => {
-        if (rejected()) throw new DriveError('battle', 'rejected')
+        if (this.failed(since, '/api/v2/keypoint/start/')) throw new DriveError('battle', 'rejected')
         const s = gameStore()?.getState().battleBoard
         return Boolean(s && (s.battleAnimationPhase !== null || STATUS_DONE.has(s.keypointStatuses[keypointId] ?? '')))
       }, 12000)

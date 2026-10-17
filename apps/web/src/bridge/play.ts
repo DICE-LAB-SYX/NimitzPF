@@ -1,9 +1,9 @@
 import { DriveError } from './drive.ts'
 import { LOADER, type PlayError, type PlayResult, type PlaySlot, type Snapshot } from './protocol.ts'
-import { advanceableStage, battleSlots, playableKeypoint, SAFE_ID } from './rules.ts'
+import { advanceableStage, battleSlots, playableKeypoint, purchases, SAFE_ID } from './rules.ts'
 
 export interface PlayDriver {
-  battle(operationId: string, keypointId: string, slots: readonly (PlaySlot | null)[], label: string): Promise<void>
+  battle(operationId: string, keypointId: string, slots: readonly (PlaySlot | null)[], label: string, buy: readonly string[]): Promise<void>
   advance(operationId: string, label: string): Promise<void>
 }
 
@@ -44,10 +44,11 @@ export class Player {
     if (r.kind === 'battle') {
       const keypointId = String(r.keypointId)
       const slots = battleSlots(r.slots)
-      if (!SAFE_ID.test(keypointId) || !slots) return fail('invalid')
+      const buy = slots && purchases(r.buy, slots)
+      if (!SAFE_ID.test(keypointId) || !slots || !buy) return fail('invalid')
       if (playableKeypoint(snapshot, operationId, keypointId) === null) return fail('stale')
       key = `battle:${keypointId}`
-      run = () => this.host.driver.battle(operationId, keypointId, slots, this.host.label())
+      run = () => this.host.driver.battle(operationId, keypointId, slots, this.host.label(), buy)
     } else if (r.kind === 'advance') {
       const stageId = String(r.stageId)
       if (!SAFE_ID.test(stageId)) return fail('invalid')
@@ -66,7 +67,7 @@ export class Player {
     } catch (error) {
       if (!(error instanceof DriveError)) return fail('ui', null, error instanceof Error ? error.message.slice(0, 200) : String(error))
       if (error.step === 'aborted') return fail('aborted', 'aborted')
-      return fail(error.detail === 'rejected' ? 'rejected' : 'ui', error.step, error.detail)
+      return fail(error.detail === 'rejected' || error.detail === 'funds' ? error.detail : 'ui', error.step, error.detail)
     } finally {
       this.busy = false
     }

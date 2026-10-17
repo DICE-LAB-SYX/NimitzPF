@@ -36,7 +36,7 @@ let plan: Plan
 let store: Store
 
 function outcome(name: string, truncated = false): SolveOutcome {
-  return { result: { name, truncated } as unknown as PlanResult, workers: 1, elapsedMs: 10 }
+  return { result: { name, truncated } as unknown as PlanResult, elapsedMs: 10 }
 }
 
 const flush = () => new Promise(resolve => setTimeout(resolve, 0))
@@ -135,5 +135,60 @@ describe('solve requests', () => {
     store.setState({ revision: 2 })
     plan.requestSolve(false)
     expect(tiers()).toEqual(['quick', 'quick'])
+  })
+})
+
+describe('effectiveness', () => {
+  async function current() {
+    const live = await import('../live/store.ts')
+    return { live, op: live.currentOperation()! }
+  }
+
+  function stocked(effectiveness: number, supplies: number): Snapshot {
+    const base = demo as unknown as Snapshot
+    const modifiers = base.inventory!.modifiers!.map(m => (m.id === 'effectiveness' ? { ...m, amount: effectiveness } : m))
+    return { ...base, inventory: { ...base.inventory!, modifiers, currencies: { eventum_1: supplies } } }
+  }
+
+  it('hands the token lanes to the solver only once it is switched on', async () => {
+    const { op } = await current()
+    const last = op.state.stages[3]!.keypoints[0]!.id
+    expect(plan.solveState(op).boosted).toBeUndefined()
+    store.getState().setEffectiveness(true)
+    expect(plan.solveState(op).boosted).toEqual({ [last]: [0, 2, 3] })
+  })
+
+  it('counts what auto-buy can afford on top of the stock', async () => {
+    const { live } = await current()
+    live.receiveSnapshot(stocked(1, 20))
+    const op = live.currentOperation()!
+    const last = op.state.stages[3]!.keypoints[0]!.id
+    store.getState().setEffectiveness(true)
+    expect(plan.solveState(op).boosted).toEqual({ [last]: [2] })
+    store.getState().setAutoBuy(true)
+    expect(plan.solveState(op).boosted).toEqual({ [last]: [2] })
+    store.getState().setAutoplay(true)
+    expect(plan.solveState(op).boosted).toEqual({ [last]: [2, 3] })
+  })
+})
+
+describe('effectiveness after the supplies ran out', () => {
+  it('plans from stock only until the wallet grows again', async () => {
+    const live = await import('../live/store.ts')
+    const base = demo as unknown as Snapshot
+    const wallet = (supplies: number): Snapshot => {
+      const modifiers = base.inventory!.modifiers!.map(m => (m.id === 'effectiveness' ? { ...m, amount: 1 } : m))
+      return { ...base, inventory: { ...base.inventory!, modifiers, currencies: { eventum_1: supplies } } }
+    }
+    store.getState().setEffectiveness(true)
+    store.getState().setAutoBuy(true)
+    store.getState().setAutoplay(true)
+    live.receiveSnapshot(wallet(36))
+    const last = live.currentOperation()!.state.stages[3]!.keypoints[0]!.id
+    expect(plan.solveState(live.currentOperation()!).boosted).toEqual({ [last]: [0, 2, 3] })
+    live.markBroke()
+    expect(plan.solveState(live.currentOperation()!).boosted).toEqual({ [last]: [2] })
+    live.receiveSnapshot(wallet(54))
+    expect(plan.solveState(live.currentOperation()!).boosted).toEqual({ [last]: [0, 2, 3] })
   })
 })

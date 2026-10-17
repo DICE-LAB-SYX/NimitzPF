@@ -17,7 +17,6 @@ export type SolveTier = 'quick' | 'deep'
 
 export interface SolveOutcome {
   readonly result: PlanResult
-  readonly workers: number
   readonly elapsedMs: number
 }
 
@@ -132,7 +131,7 @@ export async function solveInWorkers(
     const failed = primary.failure !== null || thrift.failure !== null
     const truncated = failed || primary.values.some(e => e.truncated) || candidates.some(r => r.truncated)
     if (id === requestId) busy = false
-    return { result: { ...best, truncated }, workers: workers.length, elapsedMs: performance.now() - started }
+    return { result: { ...best, truncated }, elapsedMs: performance.now() - started }
   } catch (error) {
     if (id === requestId) cancelSolve()
     throw error

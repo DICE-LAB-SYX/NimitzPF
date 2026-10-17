@@ -24,9 +24,13 @@ The battle rules are rewritten from the official engine, and the tests compare t
 
 Out of the box the panel only makes the same read-only requests the game page makes. It never plays, starts battles or buys anything, and all the maths runs in your browser.
 
+### Effectiveness
+
+Tick **Effectiveness** in the top bar and every unit sent at an enemy that drops Progress Tokens carries the Effectiveness modifier, for 10% more tokens. That lane's standard slot goes to Effectiveness, the plan is worked out around it, and the enemy card shows the boosted amount the way the game does. If you don't have enough in stock, the lanes with the most tokens get it first.
+
 ### Auto play
 
-Tick **Auto play** in the top bar and confirm, and two things show up: a **Battle** button on each key point you can fight, and **Auto play the operation**. It plays through the game's own screen the way you would: a yellow cursor opens the key point, drags the units and modifiers into place, presses Battle and waits for the fight to finish, then moves on. Once everything planned for a stage is done it hits "Go to Stage", and it keeps going until the last stage. Every step gets a 3 second countdown you can cancel, and your mouse is held back on the game page while it works so nothing gets knocked loose. The game sends every request itself; NimitzPF never talks to the game's servers directly. It never buys anything, and the final rewards are left for you to claim.
+Tick **Auto play** in the top bar and confirm, and two things show up: a **Battle** button on each key point you can fight, and **Auto play the operation**. It plays through the game's own screen the way you would: a yellow cursor opens the key point, drags the units and modifiers into place, presses Battle and waits for the fight to finish, then moves on. Once everything planned for a stage is done it hits "Go to Stage", and it keeps going until the last stage. Every step gets a 3 second countdown you can cancel, and your mouse is held back on the game page while it works so nothing gets knocked loose. The game sends every request itself; NimitzPF never talks to the game's servers directly. The final rewards are left for you to claim, and it buys nothing unless you also tick **Auto-buy** (shown once Effectiveness and auto play are both on). With that ticked, right before a battle it buys the Effectiveness that battle is short of in the game's own purchase window, with Fleet Supplies (18 each). It never buys more than that battle needs or anything else. Once your Fleet Supplies run out it stops buying and plays on with what's in stock; Effectiveness doesn't change the odds, only the tokens.
 
 It's experimental, and a game update can break it. Having a third-party tool play for you may also go against the game's terms of service, so use it at your own risk.
 

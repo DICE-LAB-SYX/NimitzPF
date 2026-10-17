@@ -28,13 +28,21 @@ export function battleSlots(slots: unknown): (PlaySlot | null)[] | null {
   return cards.size > 0 ? out : null
 }
 
+export function purchases(buy: unknown, slots: readonly (PlaySlot | null)[]): string[] | null {
+  if (buy === undefined) return []
+  if (!Array.isArray(buy) || buy.length > 2) return null
+  const fitted = new Set(slots.flatMap(s => s?.modifiers ?? []))
+  if (!buy.every(m => typeof m === 'string' && MODIFIER_ID.test(m) && fitted.has(m)) || new Set(buy).size !== buy.length) return null
+  return [...(buy as string[])]
+}
+
 export function stageCleared(stage: ApiStage): boolean {
   const c = stage.condition
   if (c?.type === 'defeat_vehicles') return typeof c.target === 'number' && (c.total ?? 0) >= c.target
   return Boolean(stage.isFinished)
 }
 
-export function activeStageOf(op: ApiOperation): ApiStage | null {
+function activeStageOf(op: ApiOperation): ApiStage | null {
   return op.stages.find(s => s.isActive) ?? (op.isStarted ? null : (op.stages[0] ?? null))
 }
 

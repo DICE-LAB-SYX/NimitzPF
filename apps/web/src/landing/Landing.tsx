@@ -26,11 +26,11 @@ const STORES: readonly { browser: Browser; key: UiKey; url: string }[] = [
   { browser: 'firefox', key: 'landingStoreFirefox', url: 'https://addons.mozilla.org/firefox/addon/tampermonkey/' },
 ]
 
-export function bridgeUrl(): string {
+function bridgeUrl(): string {
   return new URL(import.meta.env.DEV ? 'src/bridge/main.ts' : 'bridge.js', document.baseURI).href
 }
 
-export function bookmarklet(url: string): string {
+function bookmarklet(url: string): string {
   return `javascript:(()=>{const s=document.createElement('script');s.type='module';s.src=${JSON.stringify(url)}+'?loader=${LOADER}&v='+Date.now();document.head.append(s)})()`
 }
 
@@ -213,6 +213,7 @@ function BookmarkSteps() {
 
 const TIPS: readonly (readonly [UiKey, UiKey])[] = [
   ['landingTipModifiers', 'landingTipModifiersHint'],
+  ['landingTipBoost', 'landingTipBoostHint'],
   ['landingTipUnits', 'landingTipUnitsHint'],
   ['landingTipManual', 'landingTipManualHint'],
 ]

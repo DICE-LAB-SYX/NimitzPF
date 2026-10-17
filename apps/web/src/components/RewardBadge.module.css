@@ -39,3 +39,7 @@
   font-weight: 700;
   color: var(--ink-3);
 }
+
+.boosted b {
+  background: var(--gain);
+}

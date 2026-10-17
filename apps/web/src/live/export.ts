@@ -2,7 +2,7 @@ import type { Snapshot } from '../bridge/protocol.ts'
 
 const PRIVATE_KEYS = new Set(['accountId', 'accountNickname'])
 
-export function scrub<T>(value: T): T {
+function scrub<T>(value: T): T {
   if (Array.isArray(value)) return value.map(scrub) as T
   if (!value || typeof value !== 'object') return value
   const out: Record<string, unknown> = {}
@@ -10,7 +10,7 @@ export function scrub<T>(value: T): T {
   return out as T
 }
 
-export function exportable(snapshot: Snapshot): Snapshot {
+function exportable(snapshot: Snapshot): Snapshot {
   return scrub({ ...snapshot, settings: null })
 }
 

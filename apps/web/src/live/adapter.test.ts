@@ -128,6 +128,14 @@ describe('rewards', () => {
     expect(rewardDraft({ type: 'product', code: 'lootbox', amount: 1 }, DEFAULT_CURRENCIES).kind).toBe('other')
   })
 
+  it('marks only the boostable progress points the way the game does', () => {
+    const tokens = { type: 'special', code: 'adeck_progress_points', amount: 650 }
+    expect(rewardDraft({ ...tokens, boostable: true }, DEFAULT_CURRENCIES)).toEqual({ kind: 'progress', amount: 650, modifier: null, boostable: true })
+    expect(rewardDraft({ ...tokens, boostable: false }, DEFAULT_CURRENCIES)).toEqual({ kind: 'progress', amount: 650, modifier: null })
+    expect(rewardDraft({ type: 'currency', code: 'eventum_2', amount: 5, boostable: true }, DEFAULT_CURRENCIES)).toEqual({ kind: 'progress', amount: 5, modifier: null })
+    expect(rewardDraft({ type: 'currency', code: 'eventum_1', amount: 17, boostable: true }, DEFAULT_CURRENCIES)).toEqual({ kind: 'supplies', amount: 17, modifier: null })
+  })
+
   it('weights each lane against the mean of its reward kind', () => {
     const lanes = lanesOf('1002').lanes.map(l => l?.reward)
     expect(lanes[0]).toBeCloseTo(40 / 37.5)
@@ -165,7 +173,6 @@ describe('live capture from the Asia server', () => {
   const metas = [...current.keypoints.values()]
 
   it('estimates the goals of locked stages and takes the last one from the finish condition', () => {
-    expect(current.stages.map(s => s.goalType)).toEqual(['defeat_vehicles', 'win_previous_stage', 'win_previous_stage', 'win_previous_stage'])
     expect(current.state.stages.map(s => s.goal)).toEqual([8, Math.ceil(LOCKED_STAGE_GOAL * 8), Math.ceil(LOCKED_STAGE_GOAL * 8), 3])
     expect(current.stages.map(s => s.goalEstimated)).toEqual([false, true, true, false])
     expect(current.issues).toEqual([])
@@ -194,5 +201,19 @@ describe('live capture from the Asia server', () => {
       ['player-specs', 'active', ['targeted']],
       ['player-debuffs', 'pending', ['targeted']],
     ])
+  })
+
+  it('finds the progress tokens that effectiveness can boost and what they are worth boosted', () => {
+    const last = current.state.stages[3]!.keypoints[0]!
+    const meta = current.keypoints.get(last.id)!
+    expect(meta.rewards.map(r => r?.map(x => [x.kind, x.amount, x.boostable ?? false]))).toEqual([
+      [['progress', 650, true]],
+      [['modifier', 1, false]],
+      [['progress', 2800, true]],
+      [['progress', 700, true]],
+    ])
+    expect(meta.boost.map(v => v !== null)).toEqual([true, false, true, true])
+    for (const lane of [0, 2, 3]) expect(meta.boost[lane]).toBeGreaterThan(last.lanes[lane]!.reward)
+    expect(metas.filter(m => m.stage < 3).every(m => m.boost.every(v => v === null))).toBe(true)
   })
 })

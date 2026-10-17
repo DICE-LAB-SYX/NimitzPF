@@ -1,3 +1,4 @@
+import { modifierById } from '@nimitzpf/core'
 import { useEffect, useState } from 'react'
 import { LOADER, type DriveStep } from '../bridge/protocol.ts'
 import { USERSCRIPT_FILE } from '../bridge/userscript.ts'
@@ -18,11 +19,12 @@ import {
   type AutoNote,
   type Readiness,
 } from '../live/autoplay.ts'
-import { useLive } from '../live/store.ts'
+import { clearBroke, useBuying, useLive } from '../live/store.ts'
 import type { Operation } from '../state/derive.ts'
+import { BOOST } from '../state/model.ts'
 import { useStore } from '../state/store.ts'
 import { Icon } from '../ui/Icon.tsx'
-import { Button, cx, Dialog } from '../ui/primitives.tsx'
+import { Button, cx, Dialog, Toggle } from '../ui/primitives.tsx'
 import css from './AutoPlay.module.css'
 import type { KeypointContext } from './KeypointSheet.tsx'
 
@@ -31,9 +33,12 @@ const PHASE_TEXT: Readonly<Record<AutoAction, Readonly<Record<'countdown' | 'pla
   advance: { countdown: 'autoCountdownAdvance', playing: 'autoAdvancing', waiting: 'autoWaitingStage' },
 }
 
+const BUY_TEXT: Readonly<Partial<Record<'countdown' | 'playing' | 'waiting', UiKey>>> = { countdown: 'autoCountdownBuy', playing: 'autoPlayingBuy' }
+
 const STEP_TEXT: Readonly<Record<DriveStep, UiKey>> = {
   open: 'autoStepOpen',
   card: 'autoStepCard',
+  buy: 'autoStepBuy',
   modifier: 'autoStepModifier',
   battle: 'autoStepBattle',
   result: 'autoStepResult',
@@ -80,7 +85,7 @@ function useNames(op: Operation | null) {
     return meta ? label(meta.stage + 1, meta.number) : ''
   }
   const params = (note: AutoNote): Params => {
-    const p: Params = { ...note.params, ...(note.step && { step: t(STEP_TEXT[note.step]) }) }
+    const p: Params = { m: t.modifier(BOOST), ...note.params, ...(note.step && { step: t(STEP_TEXT[note.step]) }) }
     return typeof p.stage === 'number' && typeof p.n === 'number' ? { ...p, name: label(p.stage, p.n) } : p
   }
   return { of, params }
@@ -150,7 +155,7 @@ function Consent({ onAccept, onClose }: { onAccept: () => void; onClose: () => v
     >
       <div className={css.consent}>
         <p>{t('autoConsentWhat')}</p>
-        <p>{t('autoConsentLimits')}</p>
+        <p>{t('autoConsentLimits', { m: t.modifier(BOOST) })}</p>
         <p className={css.stock}>{t('autoConsentStock')}</p>
         <p className={css.risk}>{t('autoConsentRisk')}</p>
         {ready === 'old-loader' || ready === 'old-bridge' ? (
@@ -179,10 +184,9 @@ export function AutoToggle() {
   }
   return (
     <>
-      <label className={css.toggle} title={t('autoplayHint')}>
-        <input type="checkbox" checked={on} onChange={toggle} />
+      <Toggle checked={on} onChange={toggle} title={t('autoplayHint')}>
         {t('autoplay')}
-      </label>
+      </Toggle>
       {asking && (
         <Consent
           onClose={() => setAsking(false)}
@@ -191,6 +195,59 @@ export function AutoToggle() {
             setAsking(false)
           }}
         />
+      )}
+    </>
+  )
+}
+
+export function BuyToggle() {
+  const t = useT()
+  const autoplay = useStore(s => s.autoplay)
+  const boost = useStore(s => s.effectiveness)
+  const on = useStore(s => s.autoBuy)
+  const setAutoBuy = useStore(s => s.setAutoBuy)
+  const [asking, setAsking] = useState(false)
+  if (!autoplay || !boost) return null
+  const params = { m: t.modifier(BOOST), price: modifierById(BOOST)?.price ?? 0 }
+  const close = () => setAsking(false)
+  return (
+    <>
+      <Toggle
+        checked={on}
+        onChange={next => {
+          clearBroke()
+          if (next) setAsking(true)
+          else setAutoBuy(false)
+        }}
+        title={t('autoBuyHint', params)}
+      >
+        {t('autoBuy')}
+      </Toggle>
+      {asking && (
+        <Dialog
+          open
+          onClose={close}
+          title={t('autoBuyTitle', params)}
+          footer={
+            <>
+              <Button onClick={close}>{t('autoConsentNo')}</Button>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  setAutoBuy(true)
+                  close()
+                }}
+              >
+                {t('autoBuyOk')}
+              </Button>
+            </>
+          }
+        >
+          <div className={css.consent}>
+            <p>{t('autoBuyWhat', params)}</p>
+            <p className={css.stock}>{t('autoBuyLimits', params)}</p>
+          </div>
+        </Dialog>
       )}
     </>
   )
@@ -218,9 +275,10 @@ export function AutoBar({ op }: { op: Operation }) {
     main = readyText(ready)
     tone = ready === 'old-loader' || ready === 'old-bridge' ? 'error' : 'info'
   } else if (auto.running || auto.phase === 'playing') {
-    const params = { s: Math.max(1, Math.ceil(((auto.deadline ?? now) - now) / 1000)), name, n: auto.stage ?? 0 }
+    const params = { s: Math.max(1, Math.ceil(((auto.deadline ?? now) - now) / 1000)), name, n: auto.stage ?? 0, k: auto.buying, m: t.modifier(BOOST) }
     const phase = auto.phase === 'countdown' || auto.phase === 'playing' || auto.phase === 'waiting' ? auto.phase : null
-    main = phase && auto.action ? t(PHASE_TEXT[auto.action][phase], params) : t('autoThinking')
+    const buying = phase && auto.action === 'battle' && auto.buying > 0 ? BUY_TEXT[phase] : undefined
+    main = phase && auto.action ? t(buying ?? PHASE_TEXT[auto.action][phase], params) : t('autoThinking')
     sub = [auto.phase === 'playing' ? t('autoHandsOff') : null, auto.played > 0 ? t('autoPlayedCount', { n: auto.played }) : null, noteText].filter(Boolean).join(' · ') || null
   } else if (note && noteText) {
     main = noteText
@@ -228,7 +286,7 @@ export function AutoBar({ op }: { op: Operation }) {
   } else {
     main = t(run.hint)
     if (!run.operation) tone = 'info'
-    else sub = t('autoIdleTip')
+    else sub = t('autoIdleTip', { m: t.modifier(BOOST) })
   }
 
   return (
@@ -263,6 +321,7 @@ export function AutoBar({ op }: { op: Operation }) {
 export function PlayButton({ ctx }: { ctx: KeypointContext }) {
   const t = useT()
   const on = useStore(s => s.autoplay)
+  const buy = useBuying()
   const ready = useReadiness()
   const snapshot = useLive(s => s.snapshot)
   const phase = useAuto(s => s.phase)
@@ -272,8 +331,8 @@ export function PlayButton({ ctx }: { ctx: KeypointContext }) {
   const readyText = useReadinessText()
   const { op, kp, meta, stage, placements } = ctx
   if (!on || meta.raw !== 'revealed' || stage !== op.state.currentStage || op.finished) return null
-  const problem = lineupProblem(op, snapshot, kp.id, placements)
-  const blocked = ready !== 'ready' ? readyText(ready) : problem ? t(PROBLEM_NOTE[problem], { name: names.of(kp.id) }) : null
+  const problem = lineupProblem(op, snapshot, kp.id, placements, buy)
+  const blocked = ready !== 'ready' ? readyText(ready) : problem ? t(PROBLEM_NOTE[problem], { name: names.of(kp.id), m: t.modifier(BOOST) }) : null
   const mine = phase === 'playing' && target === kp.id
   return (
     <Button

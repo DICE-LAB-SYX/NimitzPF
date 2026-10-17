@@ -1,9 +1,9 @@
 import type { BuffDirection, DebuffDirection, SpecIndex, UnitType, VulnCode } from '@nimitzpf/core'
 import type { ApiEffectPayload, ApiInventory, ApiOperation, ApiSpecs, ApiState } from '../live/api.ts'
 
-export const PROTOCOL = 2
+export const PROTOCOL = 3
 export const LOADER = 2
-export const CHANNEL = 'nimitzpf'
+const CHANNEL = 'nimitzpf'
 
 export const GAME_HOSTS = ['pacificfront.worldofwarships.asia', 'pacificfront.worldofwarships.eu', 'pacificfront.worldofwarships.com', 'oceanfront.wowsgame.cn'] as const
 export const GAME_ORIGINS: readonly string[] = GAME_HOSTS.map(h => `https://${h}`)
@@ -68,12 +68,18 @@ export interface PlaySlot {
 }
 
 export type PlayRequest =
-  | { readonly kind: 'battle'; readonly operationId: string; readonly keypointId: string; readonly slots: readonly (PlaySlot | null)[] }
+  | {
+      readonly kind: 'battle'
+      readonly operationId: string
+      readonly keypointId: string
+      readonly slots: readonly (PlaySlot | null)[]
+      readonly buy?: readonly string[]
+    }
   | { readonly kind: 'advance'; readonly operationId: string; readonly stageId: string }
 
-export type PlayError = 'loader' | 'busy' | 'invalid' | 'stale' | 'ui' | 'rejected' | 'aborted' | 'timeout'
+export type PlayError = 'loader' | 'busy' | 'invalid' | 'stale' | 'ui' | 'rejected' | 'aborted' | 'timeout' | 'funds'
 
-export type DriveStep = 'open' | 'card' | 'modifier' | 'battle' | 'result' | 'stage' | 'aborted'
+export type DriveStep = 'open' | 'card' | 'buy' | 'modifier' | 'battle' | 'result' | 'stage' | 'aborted'
 
 export interface PlayResult {
   readonly ok: boolean

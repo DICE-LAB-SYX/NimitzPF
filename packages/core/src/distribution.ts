@@ -40,7 +40,7 @@ export function atLeast(dist: Distribution, threshold: number): number {
   return survival(dist, threshold)
 }
 
-export function survival(dist: Distribution, threshold: number): number {
+function survival(dist: Distribution, threshold: number): number {
   let total = 0
   for (let k = Math.max(0, Math.ceil(threshold)); k < dist.length; k++) total += dist[k]!
   return Math.min(1, Math.max(0, total))

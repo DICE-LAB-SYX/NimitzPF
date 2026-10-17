@@ -11,7 +11,7 @@ const LATIN_FACES = [
   '600 14px "Barlow Semi Condensed"',
   '700 14px "Barlow Semi Condensed"',
 ]
-export const FONT_WAIT_MS = 2500
+const FONT_WAIT_MS = 2500
 
 const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms))
 

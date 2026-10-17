@@ -53,7 +53,7 @@ export function modifierById(id: ModifierId): ModifierDef | undefined {
   return modifierIndex.get(id)
 }
 
-export function isBoss(enemy: { readonly tags: readonly string[] }): boolean {
+function isBoss(enemy: { readonly tags: readonly string[] }): boolean {
   return enemy.tags.includes('epic_boss') || enemy.tags.includes('common_boss')
 }
 

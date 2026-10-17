@@ -3,7 +3,7 @@ import type { ApiOperation, ApiState } from '../live/api.ts'
 import { DriveError } from './drive.ts'
 import { Player, type PlayDriver, type PlayHost } from './play.ts'
 import type { PlayRequest, PlaySlot, Snapshot } from './protocol.ts'
-import { advanceableStage, battleSlots, openOperation, playableKeypoint } from './rules.ts'
+import { advanceableStage, battleSlots, openOperation, playableKeypoint, purchases } from './rules.ts'
 
 const operation: ApiOperation = {
   id: 7,
@@ -87,6 +87,17 @@ describe('battle setup', () => {
     expect(battleSlots(Array.from({ length: 5 }, (_, i) => ({ cardCode: `card_${i}` })))).toBeNull()
     expect(battleSlots('card_1')).toBeNull()
   })
+
+  it('accepts purchases only for modifiers in the lineup', () => {
+    const lineup = battleSlots([{ cardCode: 'card_1', modifiers: ['effectiveness'] }, { cardCode: 'card_2', modifiers: ['focused'] }])!
+    expect(purchases(undefined, lineup)).toEqual([])
+    expect(purchases(['effectiveness'], lineup)).toEqual(['effectiveness'])
+    expect(purchases(['effectiveness', 'focused'], lineup)).toEqual(['effectiveness', 'focused'])
+    expect(purchases(['teamwork'], lineup)).toBeNull()
+    expect(purchases(['effectiveness', 'effectiveness'], lineup)).toBeNull()
+    expect(purchases('effectiveness', lineup)).toBeNull()
+    expect(purchases([null], lineup)).toBeNull()
+  })
 })
 
 describe('what can be played', () => {
@@ -118,8 +129,26 @@ describe('playing through the game screen', () => {
   it('hands the lineup to the driver and never sends anything itself', async () => {
     const { player, calls, played } = host()
     expect(await player.play(request)).toEqual({ ok: true, error: null, step: null, detail: null })
-    expect(calls).toEqual([{ kind: 'battle', args: ['7', 'k1', [...slots, null], 'NimitzPF'] }])
+    expect(calls).toEqual([{ kind: 'battle', args: ['7', 'k1', [...slots, null], 'NimitzPF', []] }])
     expect(played).toEqual(['7'])
+  })
+
+  it('only lets the driver top up a modifier the lineup fits', async () => {
+    const { player, calls } = host()
+    const boosted = [{ cardCode: 'card_7', modifiers: ['effectiveness', 'sea-dog'] }, null, { cardCode: 'card_3' }]
+    expect(await player.play({ ...request, slots: boosted, buy: ['effectiveness'] })).toMatchObject({ ok: true })
+    expect(calls[0]!.args[4]).toEqual(['effectiveness'])
+    for (const buy of [['teamwork'], ['effectiveness', 'effectiveness'], 'effectiveness', [7], ['Effectiveness'], ['effectiveness', 'sea-dog', 'focused']]) {
+      const other = host()
+      expect(await other.player.play({ ...request, slots: boosted, buy })).toMatchObject({ ok: false, error: 'invalid' })
+      expect(other.calls).toHaveLength(0)
+    }
+  })
+
+  it('names a purchase the supplies cannot cover or the game refused', async () => {
+    expect(await host({}, new DriveError('buy', 'funds')).player.play(request)).toEqual({ ok: false, error: 'funds', step: 'buy', detail: 'funds' })
+    expect(await host({}, new DriveError('buy', 'rejected')).player.play(request)).toEqual({ ok: false, error: 'rejected', step: 'buy', detail: 'rejected' })
+    expect(await host({}, new DriveError('buy', 'quantity')).player.play(request)).toEqual({ ok: false, error: 'ui', step: 'buy', detail: 'quantity' })
   })
 
   it('moves stages through the driver', async () => {

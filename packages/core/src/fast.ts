@@ -35,7 +35,6 @@ export interface Variant {
   readonly buffs: readonly CompiledBuff[]
   readonly debuffs: readonly CompiledDebuff[]
   readonly needsEnemy: boolean
-  readonly moraleKill: boolean
 }
 
 interface PlayerCondition {
@@ -174,7 +173,6 @@ export class KeypointContext {
       buffs,
       debuffs,
       needsEnemy: mods.some(m => MODIFIER_RULES[m].needsEnemy),
-      moraleKill: mods.includes('moral-impact'),
     }
     table[slot] = result
     return result

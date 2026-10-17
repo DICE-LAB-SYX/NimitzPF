@@ -24,6 +24,18 @@ export interface RewardDraft {
   readonly kind: RewardKind
   readonly amount: number
   readonly modifier: ModifierId | null
+  readonly boostable?: boolean
+}
+
+export const BOOST: ModifierId = 'effectiveness'
+const BOOST_FACTOR = 1.1
+
+export function boostedAmount(amount: number): number {
+  return Math.trunc(amount * BOOST_FACTOR)
+}
+
+export function boostTokens(rewards: readonly RewardDraft[] | null | undefined): number {
+  return (rewards ?? []).reduce((n, r) => n + (r.boostable ? r.amount : 0), 0)
 }
 
 export type RewardWeights = Readonly<Record<RewardKind, number>>
@@ -98,7 +110,7 @@ export function estimatedEnemy(difficulty: number, intel: readonly IntelRecord[]
   return { code: ESTIMATE_CODE, type: enemyByCode(ESTIMATE_CODE)?.type ?? 'cruiser', tier: profile.tier, specs: profile.specs, vulns: {} }
 }
 
-export function rewardValues(lanes: readonly (readonly RewardDraft[] | null)[], weights: RewardWeights): number[] {
+export function rewardValues(lanes: readonly (readonly RewardDraft[] | null)[], weights: RewardWeights, boost = false): number[] {
   const totals = new Map<RewardKind, { sum: number; count: number }>()
   for (const rewards of lanes) {
     for (const r of rewards ?? []) {
@@ -114,7 +126,8 @@ export function rewardValues(lanes: readonly (readonly RewardDraft[] | null)[], 
     return rewards.reduce((value, r) => {
       const weight = Math.max(0, weights[r.kind] ?? 1)
       const t = totals.get(r.kind)
-      const scale = t && t.sum > 0 && r.amount > 0 ? r.amount / (t.sum / t.count) : 1
+      const amount = boost && r.boostable ? boostedAmount(r.amount) : r.amount
+      const scale = t && t.sum > 0 && amount > 0 ? amount / (t.sum / t.count) : 1
       return value + weight * scale
     }, 0)
   })

@@ -1,10 +1,11 @@
-import { addBernoulli, atLeast, MODIFIERS, pointMass, roundPercent, type Contribution, type ModifierSlot, type SpecIndex } from '@nimitzpf/core'
+import { addBernoulli, atLeast, MODIFIERS, modifierById, pointMass, roundPercent, type Contribution, type ModifierId, type ModifierSlot, type SpecIndex } from '@nimitzpf/core'
 import type { ReactNode } from 'react'
 import { useT } from '../i18n/useT.ts'
+import { useBuying } from '../live/store.ts'
 import { useVerification, type VerificationState } from '../live/verify.ts'
 import { requestSolve, usePlan, useSolveRevision } from '../solver/plan.ts'
 import { modifierLedger, removalNeed } from '../state/derive.ts'
-import { enemyPower, stageHasFlagship } from '../state/model.ts'
+import { BOOST, enemyPower, stageHasFlagship } from '../state/model.ts'
 import { useStore } from '../state/store.ts'
 import { Icon } from '../ui/Icon.tsx'
 import { Button, cx } from '../ui/primitives.tsx'
@@ -112,6 +113,8 @@ export function Crt({ ctx }: { ctx: KeypointContext }) {
   const plan = usePlan()
   const revision = useSolveRevision()
   const selectedLane = useStore(s => s.selection.lane)
+  const boostOn = useStore(s => s.effectiveness)
+  const buying = useBuying()
   const verification = useVerification(ctx.op, ctx.kp, ctx.placements, ctx.hp, ctx.pending?.other ?? ctx.evaluation)
   const { kp, meta, stage, placements, evaluation, op, pending } = ctx
   const stock = op.state.inventory
@@ -151,8 +154,9 @@ export function Crt({ ctx }: { ctx: KeypointContext }) {
 
   const budget = (slot: ModifierSlot) => {
     const defs = MODIFIERS.filter(m => m.type === slot)
+    const used = (id: ModifierId) => result?.modifiersUsed[id] ?? 0
     return {
-      used: defs.reduce((n, m) => n + (result?.modifiersUsed[m.id] ?? 0), 0),
+      used: defs.reduce((n, m) => n + (buying && m.id === BOOST ? Math.min(used(m.id), stock[m.id] ?? 0) : used(m.id)), 0),
       stock: defs.reduce((n, m) => n + (stock[m.id] ?? 0), 0),
     }
   }
@@ -160,6 +164,18 @@ export function Crt({ ctx }: { ctx: KeypointContext }) {
   const special = budget(2)
   const ledger = modifierLedger(op, null)
   const over = MODIFIERS.filter(m => ledger[m.id].over > 0).map(m => `${t.modifier(m.id)} +${ledger[m.id].over}`)
+  const fitted = result?.modifiersUsed[BOOST] ?? 0
+  const short = buying ? Math.max(0, fitted - (stock[BOOST] ?? 0)) : 0
+  const boostLine =
+    boostOn && fitted > 0
+      ? t(short > 0 ? 'boostPlannedBuy' : 'boostPlanned', {
+          m: t.modifier(BOOST),
+          used: fitted,
+          stock: stock[BOOST] ?? 0,
+          n: short,
+          cost: short * (modifierById(BOOST)?.price ?? 0),
+        })
+      : null
   const modifierNote = (result || over.length > 0) && (
     <>
       {result && (
@@ -179,6 +195,7 @@ export function Crt({ ctx }: { ctx: KeypointContext }) {
           )}
         </div>
       )}
+      {result && boostLine && <div className={css.noteLine}>{boostLine}</div>}
       {over.length > 0 && (
         <div className={cx(css.noteLine, css.over)} role="alert" title={t('modifierOverHint')}>
           {t('modifierOver', { list: over.join(' · ') })}

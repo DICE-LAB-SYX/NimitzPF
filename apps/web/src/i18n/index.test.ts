@@ -1,6 +1,23 @@
 import { describe, expect, it } from 'vitest'
 import { asset } from '../game/assets.ts'
 import { createTranslator } from './index.ts'
+import { UI, type UiKey } from './ui.ts'
+
+describe('UI strings', () => {
+  it('fills the same placeholders in every locale', () => {
+    const holes = (text: string) => [...new Set([...text.matchAll(/\{(\w+)\}/g)].map(m => m[1]))].sort().join(',')
+    for (const key of Object.keys(UI['zh-Hans']) as UiKey[]) {
+      for (const variant of ['zh-Hans-CN', 'zh-Hant', 'en'] as const) expect(holes(UI[variant][key]), `${variant} ${key}`).toBe(holes(UI['zh-Hans'][key]))
+    }
+  })
+
+  it('names the CN modifier in the effectiveness copy', () => {
+    const t = createTranslator('zh-Hans', 'cn360')
+    expect(t('boostHint', { m: t.modifier('effectiveness') })).toContain('「效率」')
+    expect(t('boostHint', { m: t.modifier('effectiveness') })).toContain('标准修改器')
+    expect(createTranslator('zh-Hans', 'sg').modifier('effectiveness')).toBe('效率提升')
+  })
+})
 
 describe('CN server wording', () => {
   it('uses the zh-cn game strings and terms on cn360', () => {

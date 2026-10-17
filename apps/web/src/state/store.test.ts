@@ -40,7 +40,7 @@ describe('persisted state migration', () => {
     expect(state).toMatchObject({ locale: 'en', localeAuto: false, objective: 'perfect', intel: [], overrides: {} })
     expect(state.rewardWeights).toEqual({ supplies: 2, progress: 1, modifier: 1, card: 1, other: 1 })
     expect(state).not.toHaveProperty('operations')
-    expect(JSON.parse(saved.get('nimitzpf')!).version).toBe(9)
+    expect(JSON.parse(saved.get('nimitzpf')!).version).toBe(10)
   })
 
   it('leaves current data untouched', async () => {
@@ -53,14 +53,43 @@ describe('persisted state migration', () => {
   it('shows the update hint again to version 8', async () => {
     const state = await load({ locale: 'en', localeAuto: false, objective: 'complete', intel: [], overrides: {}, autoplay: true }, 8)
     expect(state).toMatchObject({ locale: 'en', autoplay: true, updateDismissed: 0 })
-    expect(JSON.parse(saved.get('nimitzpf')!).version).toBe(9)
+    expect(JSON.parse(saved.get('nimitzpf')!).version).toBe(10)
   })
 
   it('starts version 7 with auto play switched off', async () => {
     const overrides = { o1: { k1: [{ card: 'card_1', standard: null, special: null }] } }
     const state = await load({ locale: 'en', localeAuto: false, objective: 'complete', intel: [], overrides }, 7)
-    expect(state).toMatchObject({ locale: 'en', overrides, autoplay: false, updateDismissed: 0 })
-    expect(JSON.parse(saved.get('nimitzpf')!).version).toBe(9)
+    expect(state).toMatchObject({ locale: 'en', overrides, autoplay: false, updateDismissed: 0, effectiveness: false, autoBuy: false })
+    expect(JSON.parse(saved.get('nimitzpf')!).version).toBe(10)
+  })
+
+  it('starts version 9 with effectiveness and auto-buy off', async () => {
+    const state = await load({ locale: 'en', localeAuto: false, objective: 'reward', intel: [], overrides: {}, autoplay: true, updateDismissed: 2 }, 9)
+    expect(state).toMatchObject({ objective: 'reward', autoplay: true, updateDismissed: 2, effectiveness: false, autoBuy: false })
+    expect(JSON.parse(saved.get('nimitzpf')!).version).toBe(10)
+  })
+
+  it('keeps the effectiveness switches of version 10', async () => {
+    const state = await load({ locale: 'en', localeAuto: false, objective: 'complete', intel: [], overrides: {}, autoplay: true, updateDismissed: 2, effectiveness: true, autoBuy: true }, 10)
+    expect(state).toMatchObject({ effectiveness: true, autoBuy: true })
+  })
+})
+
+describe('auto-buy', () => {
+  it('only buys while auto play and effectiveness are both on', async () => {
+    const { autoBuying, useStore } = await import('./store.ts')
+    const s = useStore.getState()
+    expect(autoBuying(useStore.getState())).toBe(false)
+    s.setAutoBuy(true)
+    expect(autoBuying(useStore.getState())).toBe(false)
+    s.setEffectiveness(true)
+    expect(autoBuying(useStore.getState())).toBe(false)
+    const revision = useStore.getState().revision
+    s.setAutoplay(true)
+    expect(autoBuying(useStore.getState())).toBe(true)
+    expect(useStore.getState().revision).toBe(revision + 1)
+    s.setEffectiveness(false)
+    expect(autoBuying(useStore.getState())).toBe(false)
   })
 })
 

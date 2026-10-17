@@ -4,6 +4,9 @@ import { toLiveOperation } from '../live/adapter.ts'
 import type { ApiEffect, ApiEffectPayload, ApiEnemy, ApiKeypoint, ApiOperation, ApiRestriction, ApiSlot, ApiStage } from '../live/api.ts'
 import {
   activeConditions,
+  boostBudget,
+  boostedState,
+  boostTargets,
   canAttach,
   conditionViews,
   effectivePercentLabel,
@@ -340,6 +343,47 @@ describe('conditions on the swept path', () => {
 
   it('has nothing to lift when the plan skips the source', () => {
     expect(sweptConditions(lift(false), plan({ a: [empty, empty, empty, empty] }), 't')).toBeNull()
+  })
+})
+
+describe('effectiveness lanes', () => {
+  const tokens = (amount: number, boostable = true): ApiSlot => ({ enemy: foe, rewards: [{ type: 'special', code: 'adeck_progress_points', amount, boostable }] })
+  const supply: ApiSlot = { enemy: foe, rewards: [{ type: 'currency', code: 'eventum_1', amount: 12, boostable: true }] }
+  const layout = [
+    stage('s0', [keypoint('done', 'missed', [tokens(900), foe, null, null])]),
+    stage('s1', [keypoint('e', 'revealed', [tokens(650), supply, tokens(2800), tokens(700, false)])]),
+    stage('s2', [keypoint('f', 'revealed', [tokens(1200), foe, null, null]), keypoint('g', 'revealed', [tokens(3000), null, null, null])]),
+  ]
+  const boosted = (manual: Overrides = {}, extra: { effects?: ApiEffect[]; stock?: Counts } = {}) => operation(layout, manual, { current: 1, ...extra })
+
+  it('gives the stock to the lanes with the most tokens from the current stage on', () => {
+    expect(boostTargets(boosted(), Infinity)).toEqual({ e: [0, 2], f: [0], g: [0] })
+    expect(boostTargets(boosted(), 2)).toEqual({ e: [2], g: [0] })
+    expect(boostTargets(boosted(), 0)).toEqual({})
+  })
+
+  it('leaves manual lineups and key points that refuse it alone', () => {
+    expect(boostTargets(boosted({ g: [place('card_7'), empty, empty, empty] }), Infinity)).toEqual({ e: [0, 2], f: [0] })
+    expect(boostTargets(boosted({}, { effects: [effect(null, restrict({ modifiers: ['effectiveness'] }), ['e'])] }), Infinity)).toEqual({ f: [0], g: [0] })
+    expect(boostTargets(boosted({}, { effects: [effect(null, disable, ['f'])] }), Infinity)).toEqual({ e: [0, 2], g: [0] })
+  })
+
+  it('budgets the stock that manual lineups leave plus what can be bought', () => {
+    const manual = { f: [place('card_7', 'effectiveness'), place('card_8', 'effectiveness'), empty, empty] }
+    expect(boostBudget(boosted({}, { stock: { effectiveness: 3 } }), 0)).toBe(3)
+    expect(boostBudget(boosted(manual, { stock: { effectiveness: 3 } }), 0)).toBe(1)
+    expect(boostBudget(boosted(manual, { stock: { effectiveness: 1 } }), 2)).toBe(2)
+    expect(boostBudget(boosted(), Infinity)).toBe(Infinity)
+  })
+
+  it('hands the boosted lanes to the solver with their lifted reward', () => {
+    const o = boosted()
+    const base = { ...o.state, pinned: {} }
+    const state = boostedState(o, base, 1)
+    expect(state.boosted).toEqual({ g: [0] })
+    expect(state.stages[2]!.keypoints[1]!.lanes[0]!.reward).toBeGreaterThan(base.stages[2]!.keypoints[1]!.lanes[0]!.reward)
+    expect(state.stages[1]).toEqual(base.stages[1])
+    expect(boostedState(o, base, 0)).toBe(base)
   })
 })
 

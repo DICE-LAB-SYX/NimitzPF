@@ -2,9 +2,10 @@ import { cardByCode, collectRestrictions, MODIFIERS, modifierById, type Modifier
 import { useMemo } from 'react'
 import { asset } from '../game/assets.ts'
 import { useT } from '../i18n/useT.ts'
+import { useBuying } from '../live/store.ts'
 import { usePlanFor } from '../solver/plan.ts'
 import { activeConditions, canAttach, conditionViews, EMPTY_PLACEMENTS, laneRule, modifierLedger, stageAssignments, stageUsage, type Operation } from '../state/derive.ts'
-import { handSpecs } from '../state/model.ts'
+import { BOOST, handSpecs } from '../state/model.ts'
 import { useStore } from '../state/store.ts'
 import { cx } from '../ui/primitives.tsx'
 import css from './Dock.module.css'
@@ -27,6 +28,7 @@ export function Dock({ op, ctx }: { op: Operation; ctx: KeypointContext | null }
     [op, plan, ctx, editable],
   )
   const accepts = useMemo(() => (ctx && editable && lane !== null ? laneRule(op, ctx.kp.id, ctx.placements, lane) : null), [op, ctx, editable, lane])
+  const buying = useBuying()
   const hp = ctx?.hp ?? op.hp
 
   const cards = useMemo(() => {
@@ -83,10 +85,12 @@ export function Dock({ op, ctx }: { op: Operation; ctx: KeypointContext | null }
           const banned = Boolean(restrictions?.modifiersDisabled || restrictions?.bannedModifiers.has(m.id))
           const fits = !accepts || accepts(m.id)
           const on = usable && !banned && fits
+          const short = buying && m.id === BOOST ? Math.max(0, assigned - stock) : 0
           const title = [
             t.modifier(m.id),
             m.type === 1 ? t('modifierStandard') : t('modifierSpecial'),
             t('modifierLedger', { stock, used: assigned, left }),
+            short > 0 ? t('modifierToBuy', { n: short }) : '',
             banned ? t('banned') : over > 0 ? t('modifierOverBy', { n: over }) : !fits ? t('modifierLaneRefuses') : on && reserved ? t('modifierReserved') : '',
           ]
           return (

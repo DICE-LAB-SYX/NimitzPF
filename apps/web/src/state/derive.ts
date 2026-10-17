@@ -15,12 +15,13 @@ import {
   type KeypointInput,
   type ModifierId,
   type Objective,
+  type OperationState,
   type PlanResult,
   type PlannedKeypoint,
   type Restrictions,
 } from '@nimitzpf/core'
 import { appliesTo, type ConditionStatus, type LiveCondition, type LiveOperation } from '../live/adapter.ts'
-import type { PlacementDraft } from './model.ts'
+import { BOOST, boostTokens, type PlacementDraft } from './model.ts'
 
 export type Overrides = Readonly<Record<string, readonly PlacementDraft[]>>
 
@@ -367,6 +368,44 @@ export function openOverrides(op: Operation): Overrides {
   const out: Record<string, readonly PlacementDraft[]> = {}
   for (const [id, placements] of Object.entries(op.overrides)) if (locate(op, id)?.kp.status === 'open') out[id] = placements
   return out
+}
+
+export function boostBudget(op: Operation, buyable: number): number {
+  const held = modifierUsage(op, null).committed[BOOST] ?? 0
+  return Math.max(0, (op.state.inventory[BOOST] ?? 0) - held) + buyable
+}
+
+export function boostTargets(op: Operation, budget: number): Record<string, number[]> {
+  const picks: { readonly id: string; readonly lane: number; readonly tokens: number }[] = []
+  op.state.stages.forEach((stage, s) => {
+    if (s < op.state.currentStage) return
+    for (const kp of stage.keypoints) {
+      const meta = op.keypoints.get(kp.id)
+      if (kp.status !== 'open' || op.overrides[kp.id] || !meta) continue
+      const rule = ruleAt(op, kp)
+      kp.lanes.forEach((l, lane) => {
+        const tokens = boostTokens(meta.rewards[lane])
+        if (l && tokens > 0 && rule(lane, BOOST)) picks.push({ id: kp.id, lane, tokens })
+      })
+    }
+  })
+  picks.sort((a, b) => b.tokens - a.tokens)
+  const out: Record<string, number[]> = {}
+  for (const p of picks.slice(0, Math.max(0, budget))) (out[p.id] ??= []).push(p.lane)
+  for (const lanes of Object.values(out)) lanes.sort((a, b) => a - b)
+  return out
+}
+
+export function boostedState(op: Operation, state: OperationState, budget: number): OperationState {
+  const boosted = boostTargets(op, budget)
+  if (!Object.keys(boosted).length) return state
+  const lift = (kp: KeypointInput): KeypointInput => {
+    const lanes = boosted[kp.id]
+    const values = op.keypoints.get(kp.id)?.boost
+    if (!lanes || !values) return kp
+    return { ...kp, lanes: kp.lanes.map((l, i) => (l && lanes.includes(i) && typeof values[i] === 'number' ? { ...l, reward: values[i] } : l)) }
+  }
+  return { ...state, stages: state.stages.map(stage => ({ ...stage, keypoints: stage.keypoints.map(lift) })), boosted }
 }
 
 export function effectivePercentLabel(effect: Condition | null): string {

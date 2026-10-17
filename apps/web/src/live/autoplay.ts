@@ -6,13 +6,14 @@ import type { Params } from '../i18n/index.ts'
 import type { UiKey } from '../i18n/ui.ts'
 import { solveRevision, usePlan } from '../solver/plan.ts'
 import { activeConditions, conditionViews, evaluatePlacements, locate, modifierRule, recommendedPlacements, stageUsage, type Operation } from '../state/derive.ts'
-import type { PlacementDraft } from '../state/model.ts'
+import { BOOST, type PlacementDraft } from '../state/model.ts'
 import { useStore } from '../state/store.ts'
 import type { ApiStage } from './api.ts'
 import { play, send } from './channel.ts'
-import { currentOperation, useLive, type BridgeInfo, type Connection } from './store.ts'
+import { buyableCount, buyingNow, currentOperation, isBroke, markBroke, useLive, type BridgeInfo, type Connection } from './store.ts'
 
 export const PLAY_PROTOCOL = 2
+export const BUY_PROTOCOL = 3
 export const COUNTDOWN_MS = 3000
 const SETTLE_MS = 30000
 const POLL_MS = 2500
@@ -27,7 +28,11 @@ export function readiness(connection: Connection, bridge: BridgeInfo | null): Re
   return 'ready'
 }
 
-export type LineupProblem = 'not-in-game' | 'not-open' | 'empty' | 'invalid' | 'card' | 'modifier'
+export function canBuy(bridge: BridgeInfo | null): boolean {
+  return (bridge?.protocol ?? 0) >= BUY_PROTOCOL
+}
+
+export type LineupProblem = 'not-in-game' | 'not-open' | 'empty' | 'invalid' | 'card' | 'modifier' | 'funds'
 
 export function inGameOperation(snapshot: Snapshot | null): string | null {
   const status = snapshot?.state?.status
@@ -46,7 +51,22 @@ export function playSlots(placements: readonly PlacementDraft[]): (PlaySlot | nu
   })
 }
 
-export function lineupProblem(op: Operation, snapshot: Snapshot | null, keypointId: string, placements: readonly PlacementDraft[] | null): LineupProblem | null {
+export function shortfall(op: Operation, placements: readonly PlacementDraft[] | null): number {
+  const used = (placements ?? []).filter(p => p.card && p.standard === BOOST).length
+  return Math.max(0, used - (op.state.inventory[BOOST] ?? 0))
+}
+
+export function battleRequest(op: Operation, keypointId: string, placements: readonly PlacementDraft[], buy: boolean): PlayRequest {
+  return { kind: 'battle', operationId: op.id, keypointId, slots: playSlots(placements), ...(buy && shortfall(op, placements) > 0 && { buy: [BOOST] }) }
+}
+
+export function lineupProblem(
+  op: Operation,
+  snapshot: Snapshot | null,
+  keypointId: string,
+  placements: readonly PlacementDraft[] | null,
+  buy = false,
+): LineupProblem | null {
   if (op.finished || !snapshot || !openOperation(snapshot, op.id)) return 'not-in-game'
   const at = locate(op, keypointId)
   if (!at || at.stage !== op.state.currentStage || op.keypoints.get(keypointId)?.raw !== 'revealed') return 'not-open'
@@ -70,7 +90,12 @@ export function lineupProblem(op: Operation, snapshot: Snapshot | null, keypoint
       spend[id] = (spend[id] ?? 0) + 1
     }
   }
-  for (const [id, n] of Object.entries(spend) as [ModifierId, number][]) if (n > (op.state.inventory[id] ?? 0)) return 'modifier'
+  for (const [id, n] of Object.entries(spend) as [ModifierId, number][]) {
+    const short = n - (op.state.inventory[id] ?? 0)
+    if (short <= 0) continue
+    if (!buy || id !== BOOST) return 'modifier'
+    if (short > buyableCount(snapshot, id)) return 'funds'
+  }
   return null
 }
 
@@ -122,11 +147,12 @@ interface AutoState {
   readonly target: string | null
   readonly stage: number | null
   readonly deadline: number | null
+  readonly buying: number
   readonly played: number
   readonly note: AutoNote | null
 }
 
-const IDLE = { phase: 'idle', action: null, target: null, stage: null, deadline: null } as const
+const IDLE = { phase: 'idle', action: null, target: null, stage: null, deadline: null, buying: 0 } as const
 
 export const useAuto = create<AutoState>()(() => ({ running: false, ...IDLE, played: 0, note: null }))
 
@@ -144,6 +170,7 @@ export const PROBLEM_NOTE: Readonly<Record<LineupProblem, UiKey>> = {
   invalid: 'autoInvalid',
   card: 'autoBadCard',
   modifier: 'autoBadModifier',
+  funds: 'autoNoFunds',
 }
 
 const ERROR_NOTE: Readonly<Record<PlayError, UiKey>> = {
@@ -155,11 +182,14 @@ const ERROR_NOTE: Readonly<Record<PlayError, UiKey>> = {
   rejected: 'autoErrRejected',
   aborted: 'autoErrAborted',
   timeout: 'autoErrTimeout',
+  funds: 'autoErrFunds',
 }
 
 function failure(result: PlayResult | null): AutoNote {
   const error = result?.error ?? 'timeout'
-  return { tone: 'error', key: ERROR_NOTE[error], ...(result?.step && { step: result.step }), ...(result?.detail && { detail: result.detail }) }
+  const key = error === 'rejected' && result?.step === 'buy' ? 'autoErrBuyRejected' : ERROR_NOTE[error]
+  const told = error === 'funds' || error === 'rejected'
+  return { tone: 'error', key, ...(result?.step && { step: result.step }), ...(result?.detail && !told && { detail: result.detail }) }
 }
 
 function keypointLabel(op: Operation, keypointId: string): Params {
@@ -181,7 +211,14 @@ function rawStatus(snapshot: Snapshot | null, operationId: string, keypointId: s
 type Decision =
   | { readonly kind: 'wait'; readonly then?: () => void }
   | { readonly kind: 'stop'; readonly note: AutoNote | null }
-  | { readonly kind: 'act'; readonly key: string; readonly request: PlayRequest; readonly target: string | null; readonly stage: number | null }
+  | {
+      readonly kind: 'act'
+      readonly key: string
+      readonly request: PlayRequest
+      readonly target: string | null
+      readonly stage: number | null
+      readonly buying: number
+    }
 
 let queued = false
 let countdown = 0
@@ -217,23 +254,20 @@ function decide(): Decision {
   if (plan.operation !== id || plan.revision !== solveRevision() || plan.status === 'solving') return { kind: 'wait' }
   const target = nextTarget(op, plan.result)
   if (target) {
+    const buy = buyingNow()
     const lineup = lineupOf(op, plan.result, target)
-    const problem = lineupProblem(op, snapshot, target, lineup)
+    const problem = lineupProblem(op, snapshot, target, lineup, buy)
     if (problem || !lineup) return stopWith('error', PROBLEM_NOTE[problem ?? 'empty'], keypointLabel(op, target))
-    return {
-      kind: 'act',
-      key: JSON.stringify(['battle', target, lineup]),
-      request: { kind: 'battle', operationId: id, keypointId: target, slots: playSlots(lineup) },
-      target,
-      stage: null,
-    }
+    const buying = buy ? shortfall(op, lineup) : 0
+    if (buying > 0 && !canBuy(live.bridge)) return stopWith('error', 'autoOldBridge')
+    return { kind: 'act', key: JSON.stringify(['battle', target, lineup]), request: battleRequest(op, target, lineup, buy), target, stage: null, buying }
   }
   const held = heldTarget(op, plan.result)
   if (held) return stopWith('error', 'autoHeld', keypointLabel(op, held))
   const { index, stage } = activeStage(snapshot, id)
   if (stage && advanceableStage(snapshot, id, String(stage.id))) {
     const stageId = String(stage.id)
-    return { kind: 'act', key: JSON.stringify(['advance', stageId]), request: { kind: 'advance', operationId: id, stageId }, target: null, stage: index + 2 }
+    return { kind: 'act', key: JSON.stringify(['advance', stageId]), request: { kind: 'advance', operationId: id, stageId }, target: null, stage: index + 2, buying: 0 }
   }
   const stages = snapshot.operations[id]?.stages ?? []
   const last = stages[stages.length - 1]
@@ -307,7 +341,14 @@ function step(): void {
   const key = decision.key
   armed = key
   window.clearTimeout(countdown)
-  useAuto.setState({ phase: 'countdown', action: decision.request.kind, target: decision.target, stage: decision.stage, deadline: Date.now() + COUNTDOWN_MS })
+  useAuto.setState({
+    phase: 'countdown',
+    action: decision.request.kind,
+    target: decision.target,
+    stage: decision.stage,
+    deadline: Date.now() + COUNTDOWN_MS,
+    buying: decision.buying,
+  })
   const prefs = useStore.getState()
   if (decision.target && prefs.selection.keypoint !== decision.target) prefs.select({ keypoint: decision.target, lane: null })
   countdown = window.setTimeout(() => void fire(key), COUNTDOWN_MS)
@@ -330,6 +371,11 @@ async function fire(key: string): Promise<void> {
     useAuto.setState(s => ({ ...IDLE, note: result?.ok ? s.note : failure(result) }))
     return
   }
+  if (result?.error === 'funds' && !isBroke(useLive.getState())) {
+    markBroke()
+    useAuto.setState({ ...IDLE, phase: 'thinking', note: { tone: 'info', key: 'autoBrokeGoOn' } })
+    return schedule()
+  }
   if (!result?.ok) {
     useAuto.setState({ phase: 'idle' })
     return stopAuto(failure(result))
@@ -347,16 +393,28 @@ async function fire(key: string): Promise<void> {
 export async function playNow(op: Operation, keypointId: string, placements: readonly PlacementDraft[]): Promise<void> {
   const auto = useAuto.getState()
   if (auto.running || auto.phase !== 'idle') return
-  const problem = lineupProblem(op, useLive.getState().snapshot, keypointId, placements)
+  const buy = buyingNow()
+  const problem = lineupProblem(op, useLive.getState().snapshot, keypointId, placements, buy)
   if (problem) {
     useAuto.setState({ note: { tone: 'error', key: PROBLEM_NOTE[problem], params: keypointLabel(op, keypointId) } })
     return
   }
-  useAuto.setState({ phase: 'playing', action: 'battle', target: keypointId, note: null })
-  const result = await play({ kind: 'battle', operationId: op.id, keypointId, slots: playSlots(placements) })
+  const buying = buy ? shortfall(op, placements) : 0
+  if (buying > 0 && !canBuy(useLive.getState().bridge)) {
+    useAuto.setState({ note: { tone: 'error', key: 'autoOldBridge' } })
+    return
+  }
+  useAuto.setState({ phase: 'playing', action: 'battle', target: keypointId, buying, note: null })
+  const result = await play(battleRequest(op, keypointId, placements, buy))
+  const broke = result?.error === 'funds' && !isBroke(useLive.getState())
+  if (broke) markBroke()
   useAuto.setState({
     ...IDLE,
-    note: !result?.ok ? failure(result) : { tone: 'done', key: 'autoPlayed', params: keypointLabel(op, keypointId) },
+    note: broke
+      ? { tone: 'error', key: 'autoBrokeRetry' }
+      : !result?.ok
+        ? failure(result)
+        : { tone: 'done', key: 'autoPlayed', params: keypointLabel(op, keypointId) },
   })
   if (result?.ok) window.setTimeout(() => send({ type: 'refresh' }), POLL_MS)
 }

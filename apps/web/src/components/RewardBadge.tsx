@@ -1,10 +1,10 @@
 import { asset } from '../game/assets.ts'
 import { useT } from '../i18n/useT.ts'
-import type { RewardDraft } from '../state/model.ts'
+import { BOOST, boostedAmount, type RewardDraft } from '../state/model.ts'
 import { cx } from '../ui/primitives.tsx'
 import css from './RewardBadge.module.css'
 
-export function rewardIcon(reward: RewardDraft): string | null {
+function rewardIcon(reward: RewardDraft): string | null {
   switch (reward.kind) {
     case 'supplies':
       return asset.reward('supplies')
@@ -19,14 +19,17 @@ export function rewardIcon(reward: RewardDraft): string | null {
   }
 }
 
-export function RewardBadge({ reward, className }: { reward: RewardDraft; className?: string }) {
+export function RewardBadge({ reward, boosted = false, className }: { reward: RewardDraft; boosted?: boolean; className?: string }) {
   const t = useT()
   const icon = rewardIcon(reward)
   const label = reward.kind === 'modifier' && reward.modifier ? t.modifier(reward.modifier) : t(`reward_${reward.kind}`)
+  const lifted = boosted && reward.boostable === true
+  const amount = lifted ? boostedAmount(reward.amount) : reward.amount
+  const title = `${label} ×${amount}${lifted ? ` · ${t('rewardBoost', { m: t.modifier(BOOST) })}` : ''}`
   return (
-    <span className={cx(css.badge, className)} title={`${label} ×${reward.amount}`}>
+    <span className={cx(css.badge, lifted && css.boosted, className)} title={title}>
       {icon ? <img src={icon} alt={label} /> : <i className={css.unknown}>?</i>}
-      {reward.amount > 0 && <b className="num">{reward.amount}</b>}
+      {amount > 0 && <b className="num">{amount}</b>}
     </span>
   )
 }

@@ -325,3 +325,30 @@
   text-decoration: line-through;
   text-decoration-thickness: 2px;
 }
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--size-small);
+  font-weight: 600;
+  color: var(--sea-ink);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--enemy-stock);
+  cursor: pointer;
+}
+
+.toggle img {
+  width: 18px;
+  height: 18px;
+  margin: -2px -2px -2px 0;
+  object-fit: contain;
+}

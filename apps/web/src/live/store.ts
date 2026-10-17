@@ -1,11 +1,11 @@
-import { BUNDLED_DATA, fromSettings, installGameData, type GameSettings, type RawGameData } from '@nimitzpf/core'
+import { BUNDLED_DATA, fromSettings, installGameData, modifierById, type GameSettings, type ModifierId, type RawGameData } from '@nimitzpf/core'
 import { useMemo } from 'react'
 import { create } from 'zustand'
 import type { BridgeMessage, Route, Snapshot } from '../bridge/protocol.ts'
 import type { Locale } from '../i18n/index.ts'
 import type { Operation } from '../state/derive.ts'
 import type { IntelRecord, RewardWeights } from '../state/model.ts'
-import { useStore } from '../state/store.ts'
+import { autoBuying, useStore } from '../state/store.ts'
 import { DEFAULT_CURRENCIES, intelFrom, toLiveOperation, type CurrencyCodes, type LiveOperation } from './adapter.ts'
 
 export type Connection = 'waiting' | 'live' | 'unauth' | 'no-season' | 'offline' | 'demo'
@@ -25,6 +25,7 @@ interface LiveState {
   readonly revision: number
   readonly data: RawGameData | null
   readonly layout: { readonly collapsed: boolean; readonly push: boolean } | null
+  readonly broke: { readonly at: number | null } | null
 }
 
 export const useLive = create<LiveState>()(() => ({
@@ -36,6 +37,7 @@ export const useLive = create<LiveState>()(() => ({
   revision: 0,
   data: null,
   layout: null,
+  broke: null,
 }))
 
 const LOCALE_OF: Readonly<Record<string, Locale>> = { 'zh-cn': 'zh-Hans', 'zh-sg': 'zh-Hans', 'zh-tw': 'zh-Hant' }
@@ -81,6 +83,42 @@ function liveData(snapshot: Snapshot): RawGameData | null {
 export function currencyCodes(snapshot: Snapshot | null): CurrencyCodes {
   const options = (snapshot?.settings as Partial<GameSettings> | null)?.options
   return { main: options?.mainCurrencyCode ?? DEFAULT_CURRENCIES.main, progress: options?.progressPointsCurrencyCode ?? DEFAULT_CURRENCIES.progress }
+}
+
+export function supplies(snapshot: Snapshot | null): number | null {
+  const balance = snapshot?.inventory?.currencies?.[currencyCodes(snapshot).main]
+  return typeof balance === 'number' && Number.isFinite(balance) ? Math.max(0, balance) : null
+}
+
+export function buyableCount(snapshot: Snapshot | null, id: ModifierId): number {
+  const price = modifierById(id)?.price
+  const balance = supplies(snapshot)
+  if (!price || price <= 0) return 0
+  return balance === null ? Infinity : Math.floor(balance / price)
+}
+
+export function isBroke(live: Pick<LiveState, 'broke' | 'snapshot'>): boolean {
+  if (!live.broke) return false
+  const now = supplies(live.snapshot)
+  return now === null || (live.broke.at !== null && now <= live.broke.at)
+}
+
+export function markBroke(): void {
+  useLive.setState(s => ({ broke: { at: supplies(s.snapshot) }, revision: s.revision + 1 }))
+}
+
+export function clearBroke(): void {
+  if (useLive.getState().broke) useLive.setState(s => ({ broke: null, revision: s.revision + 1 }))
+}
+
+export function buyingNow(): boolean {
+  return autoBuying(useStore.getState()) && !isBroke(useLive.getState())
+}
+
+export function useBuying(): boolean {
+  const on = useStore(autoBuying)
+  const broke = useLive(isBroke)
+  return on && !broke
 }
 
 export function operationOrder(snapshot: Snapshot | null): string[] {

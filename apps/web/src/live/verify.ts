@@ -7,13 +7,13 @@ import type { ApiSpecs } from './api.ts'
 import { verify } from './channel.ts'
 import { useLive } from './store.ts'
 
-export const VERIFY_TOLERANCE = 1e-6
+const VERIFY_TOLERANCE = 1e-6
 
 function specs(s: Specs): ApiSpecs {
   return { 0: s[0], 1: s[1], 2: s[2] }
 }
 
-export function verifyBoard(
+function verifyBoard(
   op: Operation,
   kp: KeypointInput,
   placements: readonly PlacementDraft[],

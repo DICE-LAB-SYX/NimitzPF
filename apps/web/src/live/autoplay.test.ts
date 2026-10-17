@@ -25,7 +25,7 @@ vi.mock('./channel.ts', () => ({
 vi.mock('../solver/plan.ts', async () => {
   const { create } = await import('zustand')
   return {
-    usePlan: create(() => ({ result: null, status: 'idle', revision: -1, operation: null, deep: false, elapsedMs: 0, workers: 0, error: null })),
+    usePlan: create(() => ({ result: null, status: 'idle', revision: -1, operation: null, deep: false, elapsedMs: 0, error: null })),
     requestSolve: (deep: boolean) => {
       if (deep) solver.deep++
     },
@@ -79,6 +79,16 @@ function stageKeypoints(): string[] {
   return op().state.stages[0]!.keypoints.map(k => k.id)
 }
 
+function stocked(effectiveness: number, supplies?: number): Snapshot {
+  const inventory = base.inventory!
+  const modifiers = inventory.modifiers!.map(m => (m.id === 'effectiveness' ? { ...m, amount: effectiveness } : m))
+  return { ...base, at: Date.now(), inventory: { ...inventory, modifiers, ...(supplies !== undefined && { currencies: { eventum_1: supplies } }) } }
+}
+
+function boosted(card: string): PlacementDraft {
+  return { card, standard: 'effectiveness', special: null }
+}
+
 interface Shape {
   readonly status?: Readonly<Record<string, string>>
   readonly active?: number
@@ -119,7 +129,7 @@ beforeEach(async () => {
   planStore = (await import('../solver/plan.ts')).usePlan
   store = (await import('../state/store.ts')).useStore
   live.receiveSnapshot({ ...base, at: 1 }, 'live')
-  live.useLive.setState({ bridge: { protocol: 2, loader: 2 } })
+  live.useLive.setState({ bridge: { protocol: 3, loader: 2 } })
   store.getState().setAutoplay(true)
 })
 
@@ -136,6 +146,9 @@ describe('readiness', () => {
     expect(auto.readiness('live', null)).toBe('old-bridge')
     expect(auto.readiness('live', { protocol: 1, loader: 1 })).toBe('old-bridge')
     expect(auto.readiness('live', { protocol: 2, loader: 1 })).toBe('old-loader')
+    expect(auto.canBuy({ protocol: 2, loader: 2 })).toBe(false)
+    expect(auto.canBuy({ protocol: 3, loader: 2 })).toBe(true)
+    expect(auto.canBuy(null)).toBe(false)
   })
 
   it('remembers whether an old copy is the userscript or a bookmark', () => {
@@ -172,6 +185,56 @@ describe('lineups', () => {
     const rudder = (card: string): PlacementDraft => ({ card, standard: 'rudder-crew-training', special: null })
     expect(auto.lineupProblem(op(), snapshot, k1!, lineup(rudder('card_7')))).toBeNull()
     expect(auto.lineupProblem(op(), snapshot, k1!, lineup(rudder('card_7'), rudder('card_3')))).toBe('modifier')
+  })
+
+  it('lets auto-buy cover a short effectiveness stock while the supplies last', () => {
+    const [k1] = stageKeypoints()
+    const two = lineup(boosted('card_7'), boosted('card_3'))
+    const four = lineup(boosted('card_7'), boosted('card_3'), boosted('card_8'), boosted('card_9'))
+    live.receiveSnapshot(stocked(1, 40), 'live')
+    const snapshot = live.useLive.getState().snapshot
+    expect(auto.lineupProblem(op(), snapshot, k1!, two)).toBe('modifier')
+    expect(auto.lineupProblem(op(), snapshot, k1!, two, true)).toBeNull()
+    expect(auto.lineupProblem(op(), snapshot, k1!, four, true)).toBe('funds')
+    expect(auto.lineupProblem(op(), snapshot, k1!, lineup({ card: 'card_7', standard: 'teamwork', special: null }), true)).toBe('modifier')
+    live.receiveSnapshot(stocked(1), 'live')
+    expect(auto.lineupProblem(op(), live.useLive.getState().snapshot, k1!, four, true)).toBeNull()
+    expect(auto.shortfall(op(), four)).toBe(3)
+    expect(auto.battleRequest(op(), k1!, two, true)).toEqual({
+      kind: 'battle',
+      operationId: GAME,
+      keypointId: k1,
+      slots: [{ cardCode: 'card_7', modifiers: ['effectiveness'] }, { cardCode: 'card_3', modifiers: ['effectiveness'] }, null, null],
+      buy: ['effectiveness'],
+    })
+    expect(auto.battleRequest(op(), k1!, two, false)).not.toHaveProperty('buy')
+    expect(auto.battleRequest(op(), k1!, lineup('card_7'), true)).not.toHaveProperty('buy')
+    live.receiveSnapshot(stocked(2), 'live')
+    expect(auto.battleRequest(op(), k1!, two, true)).not.toHaveProperty('buy')
+  })
+
+  it('remembers running out of supplies until the wallet grows or auto-buy is switched', () => {
+    store.getState().setEffectiveness(true)
+    store.getState().setAutoBuy(true)
+    live.receiveSnapshot(stocked(0, 30), 'live')
+    expect(live.buyingNow()).toBe(true)
+    const revision = live.useLive.getState().revision
+    live.markBroke()
+    expect(live.useLive.getState().revision).toBe(revision + 1)
+    expect(live.buyingNow()).toBe(false)
+    live.receiveSnapshot(stocked(0, 20), 'live')
+    expect(live.buyingNow()).toBe(false)
+    live.receiveSnapshot(stocked(0, 80), 'live')
+    expect(live.buyingNow()).toBe(true)
+    live.receiveSnapshot(stocked(0), 'live')
+    live.markBroke()
+    expect(live.buyingNow()).toBe(false)
+    live.receiveSnapshot(stocked(0, 20), 'live')
+    expect(live.buyingNow()).toBe(true)
+    live.receiveSnapshot(stocked(0), 'live')
+    live.markBroke()
+    live.clearBroke()
+    expect(live.buyingNow()).toBe(true)
   })
 
   it('picks the first revealed key point that has units on it, overrides first', () => {
@@ -357,9 +420,137 @@ describe('auto play run', () => {
     expect(auto.useAuto.getState()).toMatchObject({ running: false, phase: 'idle', note: { tone: 'error', key: 'autoErrUi', step: 'modifier', detail: 'focused' } })
   })
 
+  it('tops up the missing effectiveness on the way into the battle', async () => {
+    vi.useFakeTimers()
+    store.getState().setEffectiveness(true)
+    store.getState().setAutoBuy(true)
+    live.receiveSnapshot(stocked(0, 100), 'live')
+    const [k1] = stageKeypoints()
+    setPlan(planFor({ [k1!]: lineup(boosted('card_7'), 'card_3') }))
+    auto.startAuto()
+    await flush()
+    expect(auto.useAuto.getState()).toMatchObject({ phase: 'countdown', target: k1, buying: 1 })
+    await vi.advanceTimersByTimeAsync(auto.COUNTDOWN_MS)
+    expect(bridge.plays[0]).toEqual({
+      kind: 'battle',
+      operationId: GAME,
+      keypointId: k1,
+      slots: [{ cardCode: 'card_7', modifiers: ['effectiveness'] }, { cardCode: 'card_3' }, null, null],
+      buy: ['effectiveness'],
+    })
+  })
+
+  it('stops before the battle when the supplies cannot cover the missing effectiveness', async () => {
+    store.getState().setEffectiveness(true)
+    store.getState().setAutoBuy(true)
+    live.receiveSnapshot(stocked(0, 10), 'live')
+    const [k1] = stageKeypoints()
+    setPlan(planFor({ [k1!]: lineup(boosted('card_7')) }))
+    auto.startAuto()
+    await flush()
+    expect(bridge.plays).toHaveLength(0)
+    expect(auto.useAuto.getState()).toMatchObject({ running: false, note: { tone: 'error', key: 'autoNoFunds', params: { stage: 1, n: 1 } } })
+  })
+
+  it('asks for a page reload before buying with a bridge that cannot buy yet', async () => {
+    store.getState().setEffectiveness(true)
+    store.getState().setAutoBuy(true)
+    live.useLive.setState({ bridge: { protocol: 2, loader: 2 } })
+    live.receiveSnapshot(stocked(0, 100), 'live')
+    const [k1, k2] = stageKeypoints()
+    await auto.playNow(op(), k1!, lineup(boosted('card_7')))
+    expect(bridge.plays).toHaveLength(0)
+    expect(auto.useAuto.getState().note).toMatchObject({ tone: 'error', key: 'autoOldBridge' })
+    await auto.playNow(op(), k2!, lineup('card_7'))
+    expect(bridge.plays).toHaveLength(1)
+    setPlan(planFor({ [k1!]: lineup(boosted('card_7')) }))
+    auto.startAuto()
+    await flush()
+    expect(auto.useAuto.getState()).toMatchObject({ running: false, note: { tone: 'error', key: 'autoOldBridge' } })
+    expect(bridge.plays).toHaveLength(1)
+  })
+
+  it('does not buy unless auto-buy is ticked', async () => {
+    store.getState().setEffectiveness(true)
+    live.receiveSnapshot(stocked(0, 100), 'live')
+    const [k1] = stageKeypoints()
+    setPlan(planFor({ [k1!]: lineup(boosted('card_7')) }))
+    auto.startAuto()
+    await flush()
+    expect(bridge.plays).toHaveLength(0)
+    expect(auto.useAuto.getState()).toMatchObject({ running: false, note: { tone: 'error', key: 'autoBadModifier' } })
+  })
+
+  it('stops buying and keeps playing once the game says the supplies ran out', async () => {
+    vi.useFakeTimers()
+    store.getState().setEffectiveness(true)
+    store.getState().setAutoBuy(true)
+    live.receiveSnapshot(stocked(0), 'live')
+    const [k1] = stageKeypoints()
+    setPlan(planFor({ [k1!]: lineup(boosted('card_7'), 'card_3') }))
+    bridge.next = { ok: false, error: 'funds', step: 'buy', detail: 'funds' }
+    live.useLive.subscribe(s => {
+      if (s.broke) solver.revision = 2
+    })
+    auto.startAuto()
+    await flush()
+    await vi.advanceTimersByTimeAsync(auto.COUNTDOWN_MS)
+    expect(bridge.plays[0]).toMatchObject({ buy: ['effectiveness'] })
+    expect(auto.useAuto.getState()).toMatchObject({ running: true, phase: 'thinking', note: { tone: 'info', key: 'autoBrokeGoOn' } })
+    expect(live.isBroke(live.useLive.getState())).toBe(true)
+    expect(live.buyingNow()).toBe(false)
+
+    bridge.next = { ok: true, error: null, step: null, detail: null }
+    setPlan(planFor({ [k1!]: lineup('card_7', 'card_3') }))
+    await flush()
+    expect(auto.useAuto.getState()).toMatchObject({ running: true, phase: 'countdown', target: k1, buying: 0 })
+    await vi.advanceTimersByTimeAsync(auto.COUNTDOWN_MS)
+    expect(bridge.plays[1]).toEqual({ kind: 'battle', operationId: GAME, keypointId: k1, slots: [{ cardCode: 'card_7' }, { cardCode: 'card_3' }, null, null] })
+  })
+
+  it('stops for good when the supplies run out again', async () => {
+    vi.useFakeTimers()
+    const [k1] = stageKeypoints()
+    live.markBroke()
+    setPlan(planFor({ [k1!]: lineup('card_7') }))
+    bridge.next = { ok: false, error: 'funds', step: 'buy', detail: 'funds' }
+    auto.startAuto()
+    await flush()
+    await vi.advanceTimersByTimeAsync(auto.COUNTDOWN_MS)
+    expect(auto.useAuto.getState()).toMatchObject({ running: false, note: { tone: 'error', key: 'autoErrFunds', step: 'buy' } })
+    expect(auto.useAuto.getState().note).not.toHaveProperty('detail')
+  })
+
+  it('says the game refused a purchase instead of a battle', async () => {
+    vi.useFakeTimers()
+    const [k1] = stageKeypoints()
+    setPlan(planFor({ [k1!]: lineup('card_7') }))
+    bridge.next = { ok: false, error: 'rejected', step: 'buy', detail: 'rejected' }
+    auto.startAuto()
+    await flush()
+    await vi.advanceTimersByTimeAsync(auto.COUNTDOWN_MS)
+    expect(auto.useAuto.getState()).toMatchObject({ running: false, note: { tone: 'error', key: 'autoErrBuyRejected', step: 'buy' } })
+    expect(auto.useAuto.getState().note).not.toHaveProperty('detail')
+  })
+
+  it('asks for another click after a single battle runs out of supplies', async () => {
+    store.getState().setEffectiveness(true)
+    store.getState().setAutoBuy(true)
+    live.receiveSnapshot(stocked(0), 'live')
+    const [k1] = stageKeypoints()
+    bridge.next = { ok: false, error: 'funds', step: 'buy', detail: 'funds' }
+    await auto.playNow(op(), k1!, lineup(boosted('card_7')))
+    expect(bridge.plays[0]).toMatchObject({ buy: ['effectiveness'] })
+    expect(auto.useAuto.getState()).toMatchObject({ phase: 'idle', note: { tone: 'error', key: 'autoBrokeRetry' } })
+    expect(live.buyingNow()).toBe(false)
+    await auto.playNow(op(), k1!, lineup(boosted('card_7')))
+    expect(bridge.plays).toHaveLength(1)
+    expect(auto.useAuto.getState().note).toMatchObject({ tone: 'error', key: 'autoBadModifier' })
+  })
+
   it('refuses to start battles with an old script or bookmark', async () => {
     const [k1] = stageKeypoints()
-    live.useLive.setState({ bridge: { protocol: 2, loader: 1 } })
+    live.useLive.setState({ bridge: { protocol: 3, loader: 1 } })
     setPlan(planFor({ [k1!]: lineup('card_7') }))
     auto.startAuto()
     await flush()

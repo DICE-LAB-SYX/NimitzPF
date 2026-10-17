@@ -1,8 +1,9 @@
 import type { Objective, OperationState, PlanResult, RawGameData } from '@nimitzpf/core'
 import { useEffect } from 'react'
 import { create } from 'zustand'
-import { currentOperation, useLive } from '../live/store.ts'
-import { openOverrides, type Operation } from '../state/derive.ts'
+import { buyableCount, buyingNow, currentOperation, useLive } from '../live/store.ts'
+import { boostBudget, boostedState, openOverrides, type Operation } from '../state/derive.ts'
+import { BOOST } from '../state/model.ts'
 import { useStore } from '../state/store.ts'
 import { cancelSolve, solveInWorkers, type SolveOutcome, type SolveTier } from './client.ts'
 
@@ -15,7 +16,6 @@ interface PlanState {
   readonly operation: string | null
   readonly deep: boolean
   readonly elapsedMs: number
-  readonly workers: number
   readonly error: string | null
 }
 
@@ -32,7 +32,6 @@ export const usePlan = create<PlanState>()(() => ({
   operation: null,
   deep: false,
   elapsedMs: 0,
-  workers: 0,
   error: null,
 }))
 
@@ -105,7 +104,10 @@ async function solveDeep(
 }
 
 export function solveState(op: Operation): OperationState {
-  return { ...op.state, pinned: openOverrides(op) }
+  const state = { ...op.state, pinned: openOverrides(op) }
+  if (!useStore.getState().effectiveness) return state
+  const buyable = buyingNow() ? buyableCount(useLive.getState().snapshot, BOOST) : 0
+  return boostedState(op, state, boostBudget(op, buyable))
 }
 
 export function solveRevision(): number {
@@ -149,7 +151,6 @@ export function requestSolve(deep: boolean): void {
       operation,
       deep: kind === 'deep',
       elapsedMs: outcome.elapsedMs,
-      workers: outcome.workers,
       error: null,
     })
   }

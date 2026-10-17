@@ -479,7 +479,6 @@ describe('unique result', () => {
       modifiersUsed: {},
       fleetHp: {},
       modifierCost: cost,
-      elapsedMs: 0,
       truncated: false,
     })
     const a = fake(1, 3, 'card_1')
@@ -894,5 +893,97 @@ describe('flagship', () => {
     const genes = found![0]!.genes
     expect(genes[1 * 3 + 1]).toBe(gunners)
     expect(planner.evaluate(genes, false, undefined, true).complete).toBeCloseTo(best.goal, 12)
+  })
+})
+
+describe('boosted lanes', () => {
+  const empty = { card: null, standard: null, special: null }
+  const lone: OperationState = {
+    currentStage: 0,
+    stages: [stage('s1', 1, [keypoint('k1', [foe(205), null, null, null])])],
+    conditions: [],
+    fleet: [{ card: 'card_7', hp: 3 }],
+    inventory: { 'gunners-training': 3, focused: 2 },
+  }
+
+  function plain(plan: PlanResult, boosted: Readonly<Record<string, readonly number[]>>): string {
+    return plan.stages
+      .map(s =>
+        s.keypoints
+          .map(k => k.lanes.map((l, i) => `${l.card ?? '-'}|${boosted[k.id]?.includes(i) && l.standard === 'effectiveness' ? '-' : (l.standard ?? '-')}|${l.special ?? '-'}`).join(','))
+          .join(';'),
+      )
+      .join('/')
+  }
+
+  const cases: [string, OperationState, Objective][] = [
+    ['contested / complete', { ...contested, boosted: { k1: [0, 1] } }, 'complete'],
+    ['contested / perfect', { ...contested, boosted: { k1: [2] } }, 'perfect'],
+    ['crowded / reward', { ...crowded, boosted: { k1: [1] } }, 'reward'],
+    ['buffed / reward', { ...buffed, boosted: { k1: [0] } }, 'reward'],
+  ]
+  for (const [name, state, objective] of cases) {
+    it(`reaches the brute force optimum around the boosted lanes: ${name}`, () => {
+      const expected = oracle(state, objective)
+      const result = solveOperation(state, { objective, timeBudgetMs: 500 })
+      const lanes = result.stages.flatMap(s => s.keypoints.flatMap(k => k.lanes.map((l, i) => ({ l, boosted: Boolean(state.boosted?.[k.id]?.includes(i)) }))))
+      for (const { l, boosted } of lanes) {
+        if (boosted) expect(l.standard).toBe(l.card && (l.probability ?? 0) > 0 ? 'effectiveness' : null)
+        else expect(l.standard).not.toBe('effectiveness')
+      }
+      const { effectiveness = 0, ...chosen } = result.modifiersUsed
+      expect(effectiveness).toBe(lanes.filter(x => x.boosted && x.l.standard === 'effectiveness').length)
+      expect(price(state.inventory, chosen)).toBe(expected.cost)
+      expect(result.modifierCost).toBe(expected.cost)
+      expect(compareMetrics(planMetrics(result), expected.metrics)).toBe(0)
+      expect(expected.ties.has(plain(result, state.boosted!))).toBe(true)
+    })
+  }
+
+  it('gives the standard slot to effectiveness and wins with a special instead', () => {
+    const free = solveOperation(lone, { objective: 'complete', timeBudgetMs: 300 })
+    expect(free.modifiersUsed).toEqual({ 'gunners-training': 1 })
+    const result = solveOperation({ ...lone, boosted: { k1: [0] } }, { objective: 'complete', timeBudgetMs: 300 })
+    expect(result.completeProbability).toBeCloseTo(1, 9)
+    expect(result.stages[0]!.keypoints[0]!.lanes[0]).toMatchObject({ card: 'card_7', standard: 'effectiveness', special: 'focused' })
+    expect(result.modifiersUsed).toEqual({ focused: 1, effectiveness: 1 })
+  })
+
+  it('needs no effectiveness in stock to boost a lane', () => {
+    const planner = new Planner({ ...lone, boosted: { k1: [0] } })
+    expect(planner.modifiers).not.toContain('effectiveness')
+    expect(planner.isBoosted(0)).toBe(true)
+    expect(planner.modifierOptions(0, 1)).toEqual([])
+    expect(planner.modifierOptions(0, 2)).toEqual([planner.modifiers.indexOf('focused')])
+  })
+
+  it('keeps a pinned lane the way the player set it', () => {
+    const state: OperationState = { ...lone, boosted: { k1: [0] }, pinned: { k1: [{ card: 'card_7', standard: 'gunners-training', special: null }, empty, empty, empty] } }
+    expect(new Planner(state).isBoosted(0)).toBe(false)
+    const result = solveOperation(state, { objective: 'complete', timeBudgetMs: 300 })
+    expect(result.stages[0]!.keypoints[0]!.lanes[0]).toMatchObject({ card: 'card_7', standard: 'gunners-training', special: null })
+    expect(result.modifiersUsed).toEqual({ 'gunners-training': 1 })
+  })
+
+  it('skips key points where modifiers are off or effectiveness is banned', () => {
+    const off: OperationState = {
+      ...lone,
+      boosted: { k1: [0] },
+      conditions: [{ id: 'off', scope: 'targeted', source: null, targets: ['k1'], mitigable: false, effect: { kind: 'disable-modifiers' } }],
+    }
+    const banned: OperationState = {
+      ...lone,
+      boosted: { k1: [0] },
+      conditions: [{ id: 'ban', scope: 'targeted', source: null, targets: ['k1'], mitigable: false, effect: { kind: 'restrictions', banned: { modifiers: ['effectiveness'] } } }],
+    }
+    expect(new Planner(off).isBoosted(0)).toBe(false)
+    expect(new Planner(banned).isBoosted(0)).toBe(false)
+    expect(solveOperation(off, { objective: 'complete', timeBudgetMs: 300 }).modifiersUsed).toEqual({})
+    expect(solveOperation(banned, { objective: 'complete', timeBudgetMs: 300 }).modifiersUsed).toEqual({ 'gunners-training': 1 })
+  })
+
+  it('ignores lanes without an enemy', () => {
+    const planner = new Planner({ ...lone, boosted: { k1: [1, 7] } })
+    expect([0, 1, 2, 3].map(g => planner.isBoosted(g))).toEqual([false, false, false, false])
   })
 })

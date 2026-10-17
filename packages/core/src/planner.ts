@@ -93,7 +93,6 @@ export interface PlanResult {
   readonly modifiersUsed: Readonly<Partial<Record<ModifierId, number>>>
   readonly fleetHp: Readonly<Record<string, readonly number[]>>
   readonly modifierCost: number
-  readonly elapsedMs: number
   readonly truncated: boolean
 }
 
@@ -235,6 +234,7 @@ export class Planner {
   private readonly kindCost: readonly Float64Array[]
   private readonly costUsage: Int32Array
   private readonly pricedClass: readonly (0 | 1 | 2)[]
+  private readonly boost: Uint8Array
   allowModifiers = true
   allowSpecials = true
   scoreObjective: Objective
@@ -414,6 +414,7 @@ export class Planner {
     this.keypoints = keypoints
     this.stages = stages
     this.plannedEnemyLanes = keypoints.reduce((n, kp) => n + kp.enemies.filter(Boolean).length, 0)
+    this.boost = new Uint8Array(keypoints.length * this.size)
     if (state.pinned) {
       keypoints.forEach((kp, k) => {
         const lanes = state.pinned?.[kp.input.id]
@@ -422,6 +423,13 @@ export class Planner {
       })
       if (!this.feasible(this.emptyGenes())) this.relaxPins()
     }
+    keypoints.forEach((kp, k) => {
+      if (kp.modifiersDisabled || kp.bannedModifiers.has('effectiveness')) return
+      for (const lane of state.boosted?.[kp.input.id] ?? []) {
+        const gene = k * this.size + lane
+        if (kp.enemies[lane] && !this.pins.has(gene)) this.boost[gene] = 1
+      }
+    })
     this.enemyTotal = enemyTotal
     this.rewardTotal = rewardTotal
     this.fixedKillsOutsidePlan = fixedKillsOutsidePlan
@@ -525,6 +533,10 @@ export class Planner {
 
   isPinned(gene: number): boolean {
     return this.pins.has(gene)
+  }
+
+  isBoosted(gene: number): boolean {
+    return this.boost[gene] === 1
   }
 
   movable(): boolean {
@@ -639,6 +651,7 @@ export class Planner {
           continue
         }
         if (kp.isBanned(this.cards[c]!)) return null
+        if (std !== NONE && this.boost[k * this.size + lane]) return null
         for (const m of [std, spc]) {
           if (m === NONE) continue
           const id = this.modifiers[m]!
@@ -1047,7 +1060,7 @@ export class Planner {
     const k = Math.floor(gene / this.size)
     const kp = this.keypoints[k]!
     const lane = gene % this.size
-    if (!this.allowModifiers || kp.modifiersDisabled || (slot === 2 && !this.allowSpecials)) return []
+    if (!this.allowModifiers || kp.modifiersDisabled || (slot === 2 && !this.allowSpecials) || (slot === 1 && this.boost[gene])) return []
     const out: number[] = []
     this.modifiers.forEach((id, m) => {
       if (this.modifierSlot[m] !== slot || kp.bannedModifiers.has(id)) return
@@ -2094,7 +2107,7 @@ function raiseFloor(floor: readonly number[], metrics: readonly number[]): reado
   return floor
 }
 
-export function describePlan(planner: Planner, genes: Int32Array, elapsedMs: number, truncated = false): PlanResult {
+function describePlan(planner: Planner, genes: Int32Array, truncated = false): PlanResult {
   const ev = planner.evaluate(genes, false, undefined, true)
   const hp = planner.hpTable(genes) ?? new Int8Array(planner.cards.length * planner.stages.length)
   const stageCount = planner.stages.length
@@ -2114,12 +2127,14 @@ export function describePlan(planner: Planner, genes: Int32Array, elapsedMs: num
         const spc = genes[g + 2]!
         const p = ev.laneProbabilities[k * planner.size + lane]!
         const q = ev.clearedProbabilities[k * planner.size + lane]!
+        const boosted = c !== NONE && planner.isBoosted(k * planner.size + lane) && p > 0
         if (c !== NONE) attack = true
         for (const m of [std, spc]) {
           if (m === NONE) continue
           const id = planner.modifiers[m]!
           modifiersUsed[id] = (modifiersUsed[id] ?? 0) + 1
         }
+        if (boosted) modifiersUsed.effectiveness = (modifiersUsed.effectiveness ?? 0) + 1
         if (kp.enemies[lane]) {
           const v = Number.isNaN(p) ? 0 : p
           expectedKills += v
@@ -2128,7 +2143,7 @@ export function describePlan(planner: Planner, genes: Int32Array, elapsedMs: num
         }
         lanes.push({
           card: c === NONE ? null : planner.cards[c]!.code,
-          standard: std === NONE ? null : planner.modifiers[std]!,
+          standard: std !== NONE ? planner.modifiers[std]! : boosted ? 'effectiveness' : null,
           special: spc === NONE ? null : planner.modifiers[spc]!,
           hp: c === NONE ? null : hp[c * stageCount + kp.stage]!,
           probability: Number.isNaN(p) ? null : p,
@@ -2185,7 +2200,6 @@ export function describePlan(planner: Planner, genes: Int32Array, elapsedMs: num
     modifiersUsed,
     fleetHp,
     modifierCost: planner.modifierCost(genes),
-    elapsedMs,
     truncated,
   }
 }
@@ -2212,7 +2226,6 @@ interface Session {
   readonly started: number
   readonly budget: number
   readonly random: () => number
-  readonly elapsed: () => number
   readonly truncated: () => boolean
 }
 
@@ -2233,7 +2246,6 @@ function openSession(state: OperationState, options: PlannerOptions): Session {
     started: clock(),
     budget,
     random: mulberry32(options.seed ?? QUICK_JOBS[0]!.seed),
-    elapsed: () => real() - opened,
     truncated: () => truncated,
   }
 }
@@ -2452,7 +2464,7 @@ function rankGenes(planner: Planner, candidates: readonly Int32Array[], floor: r
 export function economize(state: OperationState, options: ThriftOptions): PlanResult[] {
   const session = openSession(state, options)
   const { planner, clock, started, budget, random } = session
-  const finish = (genes: Int32Array) => describePlan(planner, genes, session.elapsed(), session.truncated())
+  const finish = (genes: Int32Array) => describePlan(planner, genes, session.truncated())
   if (planner.geneCount === 0 || planner.cards.length === 0 || !planner.movable()) return [finish(planner.emptyGenes())]
   const starts = options.starts.map(s => planner.genesFrom(s)).filter(g => planner.feasible(g))
   if (starts.length === 0) starts.push(planner.emptyGenes())
@@ -2474,7 +2486,7 @@ function planStanding(plan: PlanResult, floor: readonly number[]): Standing {
         for (const lane of kp.lanes) {
           if (!lane.card) continue
           const card = cardByCode(lane.card)
-          visit(s, card ? strengthOf(card) : 0, lane.standard !== null, lane.special !== null)
+          visit(s, card ? strengthOf(card) : 0, lane.standard !== null && lane.standard !== 'effectiveness', lane.special !== null)
         }
       }
     })
