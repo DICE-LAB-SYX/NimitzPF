@@ -1,4 +1,5 @@
 import { Driver } from './drive.ts'
+import { scaleMotion } from './motion.ts'
 import { Player } from './play.ts'
 import { envelope, loaderOf, opened, PROTOCOL, type BridgeMessage, type PanelMessage } from './protocol.ts'
 import { Sync, type PageInfo } from './sync.ts'
@@ -101,15 +102,22 @@ function mount(): void {
   root.append(style, dock, tab)
   document.documentElement.append(host)
 
+  let zoom = 1
   const fitGame = () => {
     const body = document.body
+    zoom = 1
     if (!body) return
     body.style.removeProperty('zoom')
     if (!layout.push || layout.collapsed) return
     const min = parseFloat(getComputedStyle(body).minWidth) || 0
     const room = document.documentElement.getBoundingClientRect().width
-    if (min > room) body.style.setProperty('zoom', String(Math.max(MIN_ZOOM, room / min)))
+    if (min > room) zoom = Math.max(MIN_ZOOM, room / min)
+    if (zoom !== 1) body.style.setProperty('zoom', String(zoom))
   }
+  const fitMotion = () => {
+    if (zoom !== 1 && scaleMotion(() => zoom)) window.clearInterval(motion)
+  }
+  const motion = window.setInterval(fitMotion, 1000)
   const width = () => Math.max(MIN_WIDTH, Math.min(layout.width, window.innerWidth - 320))
   const apply = () => {
     const w = width()
@@ -128,6 +136,7 @@ function mount(): void {
     post({ type: 'layout', collapsed: layout.collapsed, push: layout.push })
   }
   apply()
+  fitMotion()
 
   tab.addEventListener('click', () => setLayout({ collapsed: false }))
   grip.addEventListener('pointerdown', e => {

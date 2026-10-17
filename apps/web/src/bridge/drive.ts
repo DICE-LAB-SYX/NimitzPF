@@ -52,7 +52,7 @@ function rootFiber(): Fiber | null {
   return key ? ((app as unknown as Record<string, Fiber>)[key] ?? null) : null
 }
 
-function* fibers(): Generator<Fiber> {
+export function* fibers(): Generator<Fiber> {
   const root = rootFiber()
   const stack: Fiber[] = root ? [root] : []
   while (stack.length) {
